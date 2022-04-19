@@ -12,8 +12,10 @@ Simple chat program
 ## Additional Information
 
 The clients in these examples use "127.0.0.1" for the address and port
-8080 as the defaults, but they can be changed at runtime by using `-a
-<address>` or `-p <port>`.
+8080 as the defaults, but they can be changed at runtime:
+
+    -a <address>
+    -p <port>
 
 The servers will most likely bind to "0.0.0.0" and there's no option
 to change that yet.

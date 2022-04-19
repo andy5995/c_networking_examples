@@ -37,8 +37,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#define PORT 8080
-
 // Function designed for chat between client and server.
 void
 func (int connfd)
@@ -71,9 +69,37 @@ func (int connfd)
   }
 }
 
-int
-main ()
+static void
+show_usage (const char *prgname)
 {
+  printf ("Usage: %s [OPTIONS]\n\n", prgname);
+  puts ("\
+  -a <address>\n\
+  -p <port>\n");
+  return;
+}
+
+int
+main (int argc, char *argv[])
+{
+
+  int opt;
+  const int default_port = 8080;
+  int port = default_port;
+
+  while ((opt = getopt (argc, argv, "p:h")) != -1)
+  {
+    switch (opt)
+    {
+    case 'p':
+      port = atoi (optarg);
+      break;
+    case 'h': default:
+      show_usage (argv[0]);
+      return 0;
+    }
+  }
+
   int sockfd, connfd;
   struct sockaddr_in servaddr, cli;
 
@@ -88,10 +114,10 @@ main ()
     printf ("Socket successfully created..\n");
   bzero (&servaddr, sizeof (servaddr));
 
-  // assign IP, PORT
+  // assign IP, port
   servaddr.sin_family = AF_INET;
   servaddr.sin_addr.s_addr = htonl (INADDR_ANY);
-  servaddr.sin_port = htons (PORT);
+  servaddr.sin_port = htons (port);
 
   // Binding newly created socket to given IP and verification
   if ((bind (sockfd, (struct sockaddr *) & servaddr, sizeof (servaddr))) != 0)

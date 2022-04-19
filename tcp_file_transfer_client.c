@@ -89,6 +89,17 @@ func (const int sockfd, const char *file)
   }
 }
 
+static void
+show_usage (const char *prgname)
+{
+  printf ("Usage: %s [OPTIONS]\n\n", prgname);
+  puts ("\
+  -a <address>\n\
+  -p <port>\n\
+  -f <file>\n");
+  return;
+}
+
 int
 main (int argc, char *argv[])
 {
@@ -99,7 +110,7 @@ main (int argc, char *argv[])
   int port = default_port;
   char *file = NULL;
 
-  while ((opt = getopt (argc, argv, "f:h:p:")) != -1)
+  while ((opt = getopt (argc, argv, "f:a:p:h")) != -1)
   {
     switch (opt)
     {
@@ -109,12 +120,12 @@ main (int argc, char *argv[])
     case 'p':
       port = atoi (optarg);
       break;
-    case 'h':
+    case 'a':
       host = optarg;
       break;
-    default:                   /* '?' */
-      fprintf (stderr, "Usage: %s -h <host> -p <port> -f <file>\n", argv[0]);
-      exit (EXIT_FAILURE);
+    case 'h': default:
+      show_usage (argv[0]);
+      return 0;
     }
   }
 

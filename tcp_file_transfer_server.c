@@ -125,6 +125,16 @@ func (const int connfd)
   return;
 }
 
+static void
+show_usage (const char *prgname)
+{
+  printf ("Usage: %s [OPTIONS]\n\n", prgname);
+  puts ("\
+  -p <port>\n");
+
+  return;
+}
+
 int
 main (int argc, char *argv[])
 {
@@ -132,16 +142,16 @@ main (int argc, char *argv[])
   int default_port = 8080;
   int port = default_port;
 
-  while ((opt = getopt (argc, argv, "p:")) != -1)
+  while ((opt = getopt (argc, argv, "p:h")) != -1)
   {
     switch (opt)
     {
     case 'p':
       port = atoi (optarg);
       break;
-    default:                   /* '?' */
-      fprintf (stderr, "Usage: %s [-p <port>     (default is %d)\n", argv[0], default_port);
-      exit (EXIT_FAILURE);
+    case 'h': default:
+      show_usage (argv[0]);
+      return 0;
     }
   }
 

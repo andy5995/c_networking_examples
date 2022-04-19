@@ -37,8 +37,6 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 
-#define PORT 8080
-
 void
 func (int sockfd)
 {
@@ -62,9 +60,41 @@ func (int sockfd)
   }
 }
 
-int
-main ()
+static void
+show_usage (const char *prgname)
 {
+  printf ("Usage: %s [OPTIONS]\n\n", prgname);
+  puts ("\
+  -a <address>\n\
+  -p <port>\n");
+  return;
+}
+
+int
+main (int argc, char *argv[])
+{
+  int opt;
+  char *default_host = "127.0.0.1";
+  char *host = default_host;
+  const int default_port = 8080;
+  int port = default_port;
+
+  while ((opt = getopt (argc, argv, "a:p:h")) != -1)
+  {
+    switch (opt)
+    {
+    case 'p':
+      port = atoi (optarg);
+      break;
+    case 'a':
+      host = optarg;
+      break;
+    case 'h': default:
+      show_usage (argv[0]);
+      return 0;
+    }
+  }
+
   int sockfd, connfd;
   struct sockaddr_in servaddr, cli;
 
@@ -79,10 +109,10 @@ main ()
     printf ("Socket successfully created..\n");
   bzero (&servaddr, sizeof (servaddr));
 
-  // assign IP, PORT
+  // assign IP, port
   servaddr.sin_family = AF_INET;
-  servaddr.sin_addr.s_addr = inet_addr ("127.0.0.1");
-  servaddr.sin_port = htons (PORT);
+  servaddr.sin_addr.s_addr = inet_addr (host);
+  servaddr.sin_port = htons (port);
 
   // connect the client socket to server socket
   if (connect (sockfd, (struct sockaddr *) & servaddr, sizeof (servaddr)) != 0)

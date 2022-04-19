@@ -35,6 +35,8 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#include <libgen.h> // basename()
+#include <limits.h>
 
 void
 func (const int sockfd, const char *file)
@@ -55,9 +57,15 @@ func (const int sockfd, const char *file)
   printf ("file length: %li\n", len);
   rewind (fp);
 
-  send (sockfd, file, strlen (file) + 1, 0);
-  char buff[BUFSIZ];
+  // basename() may modify the contents of 'file', so create a copy
+  char file_orig[PATH_MAX];
+  if ((size_t)snprintf (file_orig, sizeof file_orig, "%s", file) >= sizeof file_orig)
+    fputs ("filename truncated", stderr);
 
+  char *file_basename = basename(file_orig);
+  printf ("Sending %s...\n", file);
+  send (sockfd, file_basename, strlen (file_basename) + 1, 0);
+  char buff[BUFSIZ];
   size_t n_bytes_total = 0;
   do
   {
@@ -70,13 +78,14 @@ func (const int sockfd, const char *file)
     }
     send (sockfd, buff, num, 0);
     n_bytes_total += num;
-    printf ("bytes sent: %li\n", n_bytes_total);
+    printf ("bytes sent: %li\r", n_bytes_total);
   }
   while (feof (fp) == 0);
 
-  printf ("Sent %li bytes\n", n_bytes_total);
+  putchar ('\n');
 
   bzero (buff, sizeof (buff));
+  // TODO: add confirmation from server
   // read (sockfd, buff, sizeof (buff));
   printf ("From Server : %s", buff);
   if ((strncmp (buff, "exit", 4)) == 0)

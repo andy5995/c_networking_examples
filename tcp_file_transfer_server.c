@@ -36,7 +36,6 @@
 #include <limits.h>             // PATH_MAX
 #include <errno.h>
 #include <stdlib.h>             // exit()
-#include <libgen.h>             // basename()
 
 // Function designed for file transfer between client and server.
 void
@@ -44,7 +43,6 @@ func (const int connfd)
 {
   char buff[BUFSIZ];
   char filename[PATH_MAX];
-  char *base_filename = NULL;
   char *filename_ptr = filename;
   _Bool have_filename = 0;
   ssize_t n_bytes_recvd = 0;
@@ -90,20 +88,19 @@ func (const int connfd)
     {
       if (fp == NULL)
       {
-        base_filename = basename (filename);
-        if (access (base_filename, F_OK) == 0)
+        if (access (filename, F_OK) == 0)
         {
           puts ("File already exists");
           exit (EXIT_FAILURE);
         }
 
-        fp = fopen (base_filename, "wb");
+        fp = fopen (filename, "wb");
         if (fp == NULL)
         {
           perror ("fopen:");
           exit (errno);
         }
-        puts ("opening file..");
+        printf ("Receiving '%s'\n", filename);
       }
 
       if (fwrite (buf_file_dat_ptr, 1, n_bytes_recvd, fp) !=
@@ -114,13 +111,13 @@ func (const int connfd)
       }
       n_bytes_total += n_bytes_recvd;
     }
-    printf ("bytes received: %li\n", n_bytes_total);
+    printf ("bytes received: %li\r", n_bytes_total);
   }
   while (n_bytes_recvd != 0);
   if (fclose (fp) == EOF)
     strerror (errno);
 
-  printf ("%li bytes written to '%s'\n", n_bytes_total, base_filename);
+  printf ("\nCompleted.\n");
 
   return;
 }

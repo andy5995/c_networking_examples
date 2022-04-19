@@ -13,7 +13,7 @@ extra_flags = [
   '-Wformat-security',
   '-Wformat-overflow=2',
   '-Wshadow',
-]
+  ]
 
 foreach cflag : extra_flags
   if cc.has_argument(cflag)
@@ -22,13 +22,16 @@ foreach cflag : extra_flags
 endforeach
 
 example = [
-  'example_tcp_file_transfer_client',
-  'example_tcp_file_transfer_server',
+  'tcp_file_transfer_client',
+  'tcp_file_transfer_server',
+  'tcp_chat_client',
+  'tcp_chat_server',
   ]
 
 foreach file : example
   executable(
     file,
-    file + '.c'
+    file + '.c',
+    install: false
   )
 endforeach

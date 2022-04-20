@@ -9,10 +9,18 @@ the server
 
 Simple chat program
 
+## UDP echo server/client
+
+The server echoes a message sent by the client back to the client.
+
+    client usage: ./udp_echo_client host port msg...
+    server usage: ./udp_echo_server port
+
 ## Additional Information
 
-The clients in these examples use "127.0.0.1" for the address and port
-8080 as the defaults, but they can be changed at runtime:
+Unless otherwise specified, the clients in these examples use
+"127.0.0.1" for the address and port 8080 as the defaults, but they
+can be changed at runtime:
 
     -a <address>
     -p <port>

@@ -26,6 +26,8 @@ example = [
   'tcp_file_transfer_server',
   'tcp_chat_client',
   'tcp_chat_server',
+  'udp_echo_client',
+  'udp_echo_server'
   ]
 
 foreach file : example

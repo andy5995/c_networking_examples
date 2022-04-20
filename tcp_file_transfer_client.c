@@ -115,8 +115,8 @@ main (int argc, char *argv[])
   int opt;
   char *default_host = "127.0.0.1";
   char *host = default_host;
-  const int default_port = 8080;
-  int port = default_port;
+  char *default_port = "8080";
+  char *port = default_port;
   char *file = NULL;
 
   while ((opt = getopt (argc, argv, "f:a:p:h")) != -1)
@@ -127,7 +127,7 @@ main (int argc, char *argv[])
       file = optarg;
       break;
     case 'p':
-      port = atoi (optarg);
+      port = optarg;
       break;
     case 'a':
       host = optarg;
@@ -144,36 +144,57 @@ main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
 
-  int sockfd;
-  struct sockaddr_in servaddr;
+  struct addrinfo hints;
+  struct addrinfo *result, *rp;
 
-  // socket create and verification
-  sockfd = socket (AF_INET, SOCK_STREAM, 0);
+  /* Obtain address(es) matching host/port */
+  memset (&hints, 0, sizeof (struct addrinfo));
+  hints.ai_family = AF_UNSPEC;  /* Allow IPv4 or IPv6 */
+  hints.ai_socktype = SOCK_STREAM;
+  hints.ai_flags = 0;
+  hints.ai_protocol = 0;        /* Any protocol */
+
+  int s = getaddrinfo (host, port, &hints, &result);
+  if (s != 0)
+  {
+    fprintf (stderr, "getaddrinfo: %s\n", gai_strerror (s));
+    return -1;
+  }
+
+  /* getaddrinfo() returns a list of address structures.
+     Try each address until we successfully connect(2).
+     If socket(2) (or connect(2)) fails, we (close the socket
+     and) try the next address. */
+  int sockfd = -1;
+  for (rp = result; rp != NULL; rp = rp->ai_next)
+  {
+    sockfd = socket (rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+    if (sockfd == -1)
+      continue;
+
+    // Once the socket is succesfully created, try connecting
+    if (connect (sockfd, rp->ai_addr, rp->ai_addrlen) == 0)
+    {
+      printf ("Connected to %s\n", host);
+      break;
+    }
+    else
+    {
+      perror("connect");
+      return close (sockfd);
+    }
+  }
+
+  freeaddrinfo (result);        /* No longer needed */
+
   if (sockfd == -1)
   {
-    printf ("socket creation failed...\n");
-    return 0;
+    fputs ("Unable to create socket\n", stderr);
+    return -1;
   }
-  else
-    printf ("Socket successfully created..\n");
-  bzero (&servaddr, sizeof (servaddr));
 
-  servaddr.sin_family = AF_INET;
-  servaddr.sin_addr.s_addr = inet_addr (host);
-  servaddr.sin_port = htons (port);
-
-  // connect the client socket to server socket
-  if (connect (sockfd, (struct sockaddr *) &servaddr, sizeof (servaddr)) != 0)
-  {
-    printf ("connection with the server failed...\n");
-    return 0;
-  }
-  else
-    printf ("connected to the server..\n");
-
-  // function for chat
   func (sockfd, file);
 
   // close the socket
-  close (sockfd);
+  return close (sockfd);
 }

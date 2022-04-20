@@ -37,9 +37,21 @@
 #include <errno.h>
 #include <stdlib.h>             // exit()
 
-// Function designed for file transfer between client and server.
-void
-func (const int connfd)
+struct conninfo
+{
+  int port;
+  int sockfd;
+  int connfd;
+};
+
+/*
+ * recv_file
+ * receive data from the client, obtain the filename and write the
+ * remaining data to a file
+ *
+ */
+static void
+recv_file (const int connfd)
 {
   char buff[BUFSIZ];
   char filename[PATH_MAX];
@@ -49,12 +61,8 @@ func (const int connfd)
   FILE *fp = NULL;
   size_t n_bytes_total = 0;
 
-  do
+  while ((n_bytes_recvd = recv (connfd, buff, sizeof (buff), 0)) != 0)
   {
-    bzero (buff, sizeof (buff));
-    n_bytes_recvd = recv (connfd, buff, sizeof (buff), 0);
-    if (n_bytes_recvd == 0)
-      break;
     if (n_bytes_recvd == -1)
     {
       fputs ("error", stderr);
@@ -62,6 +70,7 @@ func (const int connfd)
     }
 
     char *buf_file_dat_ptr = buff;
+
     if (!have_filename)
     {
       ssize_t i;
@@ -113,13 +122,71 @@ func (const int connfd)
     }
     printf ("bytes received: %li\r", n_bytes_total);
   }
-  while (n_bytes_recvd != 0);
+
   if (fclose (fp) == EOF)
     strerror (errno);
 
-  printf ("\nCompleted.\n");
+  puts ("\nCompleted.");
 
   return;
+}
+
+static int
+accept_connection (struct conninfo *conninfo)
+{
+  struct sockaddr_in servaddr, cli;
+
+  conninfo->sockfd = socket (AF_INET, SOCK_STREAM, 0);
+  if (conninfo->sockfd == -1)
+  {
+    perror ("socket");
+    return -1;
+  }
+  else
+    puts ("Socket successfully created");
+  bzero (&servaddr, sizeof (servaddr));
+
+  servaddr.sin_family = AF_UNSPEC;
+  servaddr.sin_addr.s_addr = htonl (INADDR_ANY);
+  servaddr.sin_port = htons (conninfo->port);
+
+  // Binding newly created socket to given IP and verification
+  if ((bind
+       (conninfo->sockfd, (struct sockaddr *) &servaddr,
+        sizeof (servaddr))) != 0)
+  {
+    perror ("bind");
+    close (conninfo->sockfd);
+    return -1;
+  }
+  else
+    printf ("Socket successfully binded..\n");
+
+  // Now server is ready to listen and verification
+  if ((listen (conninfo->sockfd, 5)) != 0)
+  {
+    perror ("listen");
+    close (conninfo->sockfd);
+    return -1;
+  }
+  else
+    printf ("Server listening on port %d...\n", conninfo->port);
+
+  socklen_t len = sizeof (cli);
+
+  // Accept the data packet from client and verification
+  conninfo->connfd =
+    accept (conninfo->sockfd, (struct sockaddr *) &cli, &len);
+  if (conninfo->connfd < 0)
+  {
+    perror ("accept");
+    close (conninfo->sockfd);
+    return conninfo->connfd;
+  }
+  else
+    puts ("Client connected\n");
+
+  return 0;
 }
 
 static void
@@ -135,74 +202,29 @@ show_usage (const char *prgname)
 int
 main (int argc, char *argv[])
 {
+  struct conninfo conninfo;
   int opt;
   int default_port = 8080;
-  int port = default_port;
+  conninfo.port = default_port;
 
   while ((opt = getopt (argc, argv, "p:h")) != -1)
   {
     switch (opt)
     {
     case 'p':
-      port = atoi (optarg);
+      conninfo.port = atoi (optarg);
       break;
-    case 'h': default:
+    case 'h':
+    default:
       show_usage (argv[0]);
       return 0;
     }
   }
 
-  struct sockaddr_in servaddr, cli;
+  if (accept_connection (&conninfo) < 0)
+    return -1;
 
-  // socket create and verification
-  int sockfd = socket (AF_INET, SOCK_STREAM, 0);
-  if (sockfd == -1)
-  {
-    printf ("socket creation failed...\n");
-    return 0;
-  }
-  else
-    printf ("Socket successfully created..\n");
-  bzero (&servaddr, sizeof (servaddr));
-
-  // assign IP, port
-  servaddr.sin_family = AF_INET;
-  servaddr.sin_addr.s_addr = htonl (INADDR_ANY);
-  servaddr.sin_port = htons (port);
-
-  // Binding newly created socket to given IP and verification
-  if ((bind (sockfd, (struct sockaddr *) &servaddr, sizeof (servaddr))) != 0)
-  {
-    printf ("socket bind failed...\n");
-    return 0;
-  }
-  else
-    printf ("Socket successfully binded..\n");
-
-  // Now server is ready to listen and verification
-  if ((listen (sockfd, 5)) != 0)
-  {
-    printf ("Listen failed...\n");
-    return 0;
-  }
-  else
-    printf ("Server listening on port %d...\n", port);
-
-  socklen_t len = sizeof (cli);
-
-  // Accept the data packet from client and verification
-  int connfd = accept (sockfd, (struct sockaddr *) &cli, &len);
-  if (connfd < 0)
-  {
-    printf ("server accept failed...\n");
-    return 0;
-  }
-  else
-    printf ("server accept the client...\n");
-
-  // Function for chatting between client and server
-  func (connfd);
-
-  // After chatting close the socket
-  close (sockfd);
+  recv_file (conninfo.connfd);
+  puts ("Closing socket");
+  return close (conninfo.sockfd);
 }

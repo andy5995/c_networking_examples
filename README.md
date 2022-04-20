@@ -1,4 +1,10 @@
+[![C/C++ CI](https://github.com/andy5995/c_networking_examples/actions/workflows/c-cpp.yml/badge.svg)](https://github.com/andy5995/c_networking_examples/actions/workflows/c-cpp.yml)
+
 # C Networking Examples
+
+TCP and UDP examples of networking in C
+
+Website: https://github.com/andy5995/c_networking_examples
 
 ## TCP File Transfer
 

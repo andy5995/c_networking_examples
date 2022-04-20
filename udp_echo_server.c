@@ -30,7 +30,6 @@
 
 #include <sys/types.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 #include <sys/socket.h>
@@ -82,7 +81,7 @@ main (int argc, char *argv[])
   if (argc != 2)
   {
     fprintf (stderr, "Usage: %s port\n", argv[0]);
-    exit (EXIT_FAILURE);
+    return -1;
   }
 
   memset (&hints, 0, sizeof (struct addrinfo));
@@ -98,7 +97,7 @@ main (int argc, char *argv[])
   if (s != 0)
   {
     fprintf (stderr, "getaddrinfo: %s\n", gai_strerror (s));
-    exit (EXIT_FAILURE);
+    return -1;
   }
 
   /* getaddrinfo() returns a list of address structures.
@@ -121,8 +120,8 @@ main (int argc, char *argv[])
 
   if (rp == NULL)
   {                             /* No address succeeded */
-    fprintf (stderr, "Could not bind\n");
-    exit (EXIT_FAILURE);
+    fputs ("Could not bind\n", stderr);
+    return -1;
   }
 
   freeaddrinfo (result);        /* No longer needed */
@@ -146,8 +145,23 @@ main (int argc, char *argv[])
     else
       fprintf (stderr, "getnameinfo: %s\n", gai_strerror (s));
 
-    if (sendto (sfd, buf, nread, 0,
-                (struct sockaddr *) &peer_addr, peer_addr_len) != nread)
-      fprintf (stderr, "Error sending response\n");
+    ssize_t r_sto =
+      sendto (sfd, buf, nread, 0, (struct sockaddr *) &peer_addr,
+              peer_addr_len);
+
+    if (strncasecmp (buf, "exit", 4) == 0)
+    {
+      puts ("Received 'exit'");
+      close (sfd);
+      return 0;
+    }
+
+    if (r_sto != nread)
+    {
+      fputs ("Error sending response\n", stderr);
+      close (sfd);
+      return r_sto;
+    }
   }
+  return 0;
 }

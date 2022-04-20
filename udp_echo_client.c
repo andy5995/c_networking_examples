@@ -32,7 +32,6 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 
@@ -49,7 +48,7 @@ main (int argc, char *argv[])
   if (argc < 3)
   {
     fprintf (stderr, "Usage: %s host port msg...\n", argv[0]);
-    exit (EXIT_FAILURE);
+    return -1;
   }
 
   /* Obtain address(es) matching host/port */
@@ -64,7 +63,7 @@ main (int argc, char *argv[])
   if (s != 0)
   {
     fprintf (stderr, "getaddrinfo: %s\n", gai_strerror (s));
-    exit (EXIT_FAILURE);
+    return -1;
   }
 
   /* getaddrinfo() returns a list of address structures.
@@ -86,8 +85,8 @@ main (int argc, char *argv[])
 
   if (rp == NULL)
   {                             /* No address succeeded */
-    fprintf (stderr, "Could not connect\n");
-    exit (EXIT_FAILURE);
+    fputs ("Could not connect\n", stderr);
+    return -1;
   }
 
   freeaddrinfo (result);        /* No longer needed */
@@ -108,19 +107,19 @@ main (int argc, char *argv[])
 
     if (write (sfd, argv[j], len) != len)
     {
-      fprintf (stderr, "partial/failed write\n");
-      exit (EXIT_FAILURE);
+      fputs ("partial/failed write\n", stderr);
+      return -1;
     }
 
     nread = read (sfd, buf, BUFSIZ);
     if (nread == -1)
     {
       perror ("read");
-      exit (EXIT_FAILURE);
+      return -1;
     }
 
     printf ("Received %ld bytes: %s\n", (long) nread, buf);
   }
 
-  exit (EXIT_SUCCESS);
+  return 0;
 }

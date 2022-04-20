@@ -35,7 +35,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
-#include <libgen.h> // basename()
+#include <libgen.h>             // basename()
 #include <limits.h>
 
 void
@@ -59,10 +59,11 @@ func (const int sockfd, const char *file)
 
   // basename() may modify the contents of 'file', so create a copy
   char file_orig[PATH_MAX];
-  if ((size_t)snprintf (file_orig, sizeof file_orig, "%s", file) >= sizeof file_orig)
+  if ((size_t) snprintf (file_orig, sizeof file_orig, "%s", file) >=
+      sizeof file_orig)
     fputs ("filename truncated", stderr);
 
-  char *file_basename = basename(file_orig);
+  char *file_basename = basename (file_orig);
   printf ("Sending %s...\n", file);
   send (sockfd, file_basename, strlen (file_basename) + 1, 0);
   char buff[BUFSIZ];
@@ -87,7 +88,7 @@ func (const int sockfd, const char *file)
   bzero (buff, sizeof (buff));
   // TODO: add confirmation from server
   // read (sockfd, buff, sizeof (buff));
-  printf ("From Server : %s", buff);
+  // printf ("From Server : %s", buff);
   if ((strncmp (buff, "exit", 4)) == 0)
   {
     printf ("Client Exit...\n");
@@ -132,7 +133,8 @@ main (int argc, char *argv[])
     case 'a':
       host = optarg;
       break;
-    case 'h': default:
+    case 'h':
+    default:
       show_usage (argv[0]);
       return 0;
     }
@@ -172,17 +174,14 @@ main (int argc, char *argv[])
     if (sockfd == -1)
       continue;
 
-    // Once the socket is succesfully created, try connecting
     if (connect (sockfd, rp->ai_addr, rp->ai_addrlen) == 0)
     {
       printf ("Connected to %s\n", host);
       break;
     }
-    else
-    {
-      perror("connect");
-      return close (sockfd);
-    }
+    perror ("connect");
+    if (close (sockfd) != 0)
+      perror ("close");
   }
 
   freeaddrinfo (result);        /* No longer needed */
@@ -195,6 +194,6 @@ main (int argc, char *argv[])
 
   func (sockfd, file);
 
-  // close the socket
+  puts ("Closing socket");
   return close (sockfd);
 }

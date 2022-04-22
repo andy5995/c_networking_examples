@@ -37,9 +37,10 @@
 #include <sys/socket.h>
 #include <libgen.h>             // basename()
 #include <limits.h>
+#include <poll.h>
 
 void
-func (const int sockfd, const char *file)
+func (int sockfd, const char *file)
 {
   FILE *fp = fopen (file, "rb");
   if (fp == NULL)
@@ -65,6 +66,7 @@ func (const int sockfd, const char *file)
 
   char *file_basename = basename (file_orig);
   printf ("Sending %s...\n", file);
+
   send (sockfd, file_basename, strlen (file_basename) + 1, 0);
   char buff[BUFSIZ];
   size_t n_bytes_total = 0;
@@ -80,24 +82,54 @@ func (const int sockfd, const char *file)
     send (sockfd, buff, num, 0);
     n_bytes_total += num;
     printf ("bytes sent: %li\r", n_bytes_total);
+
   }
   while (feof (fp) == 0);
 
   putchar ('\n');
 
   bzero (buff, sizeof (buff));
-  // TODO: add confirmation from server
-  // read (sockfd, buff, sizeof (buff));
-  // printf ("From Server : %s", buff);
-  if ((strncmp (buff, "exit", 4)) == 0)
-  {
-    printf ("Client Exit...\n");
-  }
+
+  //struct pollfd pfds[1]; // More if you want to monitor more
+  //pfds[0].fd = sockfd;
+  //pfds[0].events = POLLIN; // Alert me when I can recv() data to this socket without blocking.
+  //int num_events = poll(pfds, 1, 2000);
+
+  //if (num_events == -1) {
+      //perror("poll");
+      //exit(1);
+  //}
+
+  //if (num_events == 0) {
+    //printf("Poll timed out!\n");
+  //} else {
+    //int pollin_happened = pfds[0].revents & POLLIN;
+    //if (pollin_happened)
+    //{
+      //fputs ("Server replied: ", stdout);
+      //int n_bytes_recvd;
+      //while ((n_bytes_recvd = recv (pfds[0].fd, buff, sizeof (buff), 0)) != 0)
+        //fputs (buff, stdout);
+      //if (n_bytes_recvd < 0)
+        //perror ("recv");
+    //}
+  //}
+
+  fputs ("Server replied: ", stdout);
+  int n_bytes_recvd;
+  while ((n_bytes_recvd = recv (sockfd, buff, sizeof (buff), 0)) != 0)
+    fputs (buff, stdout);
+  if (n_bytes_recvd < 0)
+    perror ("recv");
+
   if (fclose (fp) == EOF)
   {
-    strerror (errno);
+    perror ("fclose");
   }
+
+  return;
 }
+
 
 static void
 show_usage (const char *prgname)
@@ -109,6 +141,7 @@ show_usage (const char *prgname)
   -f <file>\n");
   return;
 }
+
 
 int
 main (int argc, char *argv[])
@@ -194,6 +227,6 @@ main (int argc, char *argv[])
 
   func (sockfd, file);
 
-  puts ("Closing socket");
+  puts ("\nClosing socket");
   return close (sockfd);
 }

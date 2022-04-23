@@ -2,7 +2,7 @@ project(
   'c_networking_examples',
   'c',
   version: '0.1.0.555',
-  meson_version : '>= 0.48.0',
+  meson_version : '>= 0.56.0',
   default_options: ['warning_level=3']
   )
 
@@ -37,3 +37,5 @@ foreach file : example
     install: false
   )
 endforeach
+
+subdir ('test')

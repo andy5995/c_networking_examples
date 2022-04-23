@@ -39,7 +39,7 @@
 #include <limits.h>
 #include <poll.h>
 
-void
+int
 func (int sockfd, const char *file)
 {
   FILE *fp = fopen (file, "rb");
@@ -127,7 +127,7 @@ func (int sockfd, const char *file)
     perror ("fclose");
   }
 
-  return;
+  return strstr (buff, "already exists") != NULL;
 }
 
 
@@ -225,8 +225,11 @@ main (int argc, char *argv[])
     return -1;
   }
 
-  func (sockfd, file);
+  int f_exists = func (sockfd, file);
 
   puts ("\nClosing socket");
-  return close (sockfd);
+  if (close (sockfd) != 0)
+    perror ("close() failed");
+
+  return f_exists;
 }

@@ -52,7 +52,7 @@ struct conninfo
  * remaining data to a file
  *
  */
-static void
+static int
 recv_file (struct conninfo *conninfo)
 {
   char buff[BUFSIZ];
@@ -61,6 +61,7 @@ recv_file (struct conninfo *conninfo)
   _Bool have_filename = 0;
   ssize_t n_bytes_recvd = 0;
   FILE *fp = NULL;
+  _Bool f_exists = 0;
   size_t n_bytes_total = 0;
   bzero (buff, sizeof buff);
 
@@ -110,8 +111,8 @@ recv_file (struct conninfo *conninfo)
           {
             if (access (filename, F_OK) == 0)
             {
-              puts ("File already exists");
-              exit (EXIT_FAILURE);
+              f_exists = 1;
+              break;
             }
 
             fp = fopen (filename, "wb");
@@ -163,7 +164,7 @@ recv_file (struct conninfo *conninfo)
   {
     if (pfds[0].revents & POLLOUT)
     {
-      snprintf (buff, sizeof buff, "Received %li bytes", n_bytes_total);
+      snprintf (buff, sizeof buff, "%s %li bytes", f_exists == 0 ? "Received" : "File already exists. Received", n_bytes_total);
       puts ("Sending confirmation to client");
       ssize_t s_r = send (pfds[0].fd, buff, strlen (buff) + 1, 0);
       if (s_r >=0)
@@ -183,7 +184,7 @@ recv_file (struct conninfo *conninfo)
 
   puts ("\nCompleted.");
 
-  return;
+  return f_exists;
 }
 
 
@@ -292,7 +293,10 @@ main (int argc, char *argv[])
   if (accept_connection (&conninfo) < 0)
     return -1;
 
-  recv_file (&conninfo);
+  int f_exists = recv_file (&conninfo);
   puts ("Closing socket");
-  return close (conninfo.sockfd);
+  if (close (conninfo.sockfd))
+    perror("close() failed");
+
+  return f_exists;
 }

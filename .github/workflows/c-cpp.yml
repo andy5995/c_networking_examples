@@ -14,8 +14,14 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Install dependencies
-      run: sudo apt-get install -y meson
+      run: |
+        sudo apt-get install -y python3-pip python3-setuptools
+        sudo -H python3 -m pip install meson ninja
     - name: configure
       run: meson builddir
     - name: ninja
       run: ninja -v -C builddir
+    - name: test
+      run: |
+        cd builddir
+        meson test -v

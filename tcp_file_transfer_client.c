@@ -87,40 +87,17 @@ func (int sockfd, const char *file)
   while (feof (fp) == 0);
 
   putchar ('\n');
-
   bzero (buff, sizeof (buff));
-
-  //struct pollfd pfds[1]; // More if you want to monitor more
-  //pfds[0].fd = sockfd;
-  //pfds[0].events = POLLIN; // Alert me when I can recv() data to this socket without blocking.
-  //int num_events = poll(pfds, 1, 2000);
-
-  //if (num_events == -1) {
-      //perror("poll");
-      //exit(1);
-  //}
-
-  //if (num_events == 0) {
-    //printf("Poll timed out!\n");
-  //} else {
-    //int pollin_happened = pfds[0].revents & POLLIN;
-    //if (pollin_happened)
-    //{
-      //fputs ("Server replied: ", stdout);
-      //int n_bytes_recvd;
-      //while ((n_bytes_recvd = recv (pfds[0].fd, buff, sizeof (buff), 0)) != 0)
-        //fputs (buff, stdout);
-      //if (n_bytes_recvd < 0)
-        //perror ("recv");
-    //}
-  //}
-
   fputs ("Server replied: ", stdout);
   int n_bytes_recvd;
   while ((n_bytes_recvd = recv (sockfd, buff, sizeof (buff), 0)) != 0)
+  {
     fputs (buff, stdout);
+    bzero (buff, sizeof buff);
+  }
+
   if (n_bytes_recvd < 0)
-    perror ("recv");
+    perror ("recv() failed");
 
   if (fclose (fp) == EOF)
   {
@@ -215,6 +192,7 @@ main (int argc, char *argv[])
     perror ("connect");
     if (close (sockfd) != 0)
       perror ("close");
+    return -1;
   }
 
   freeaddrinfo (result);        /* No longer needed */

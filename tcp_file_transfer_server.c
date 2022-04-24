@@ -71,10 +71,10 @@ recv_file (struct conninfo *conninfo)
 
   for (;;)
   {
-    int num_events = poll(pfds, 1, 1000);
+    int num_events = poll(pfds, 1, 250); // 250 milliseconds
     if (num_events == 0)
     {
-      printf("Poll timed out!\n");
+      puts ("Completed receiving data");
       break;
     }
     else
@@ -140,14 +140,17 @@ recv_file (struct conninfo *conninfo)
   if (fp != NULL)
   {
     if (fclose (fp) == EOF)
-      strerror (errno);
+      perror ("fclose() failed");
+  }
+  else
+    puts("Error: No file was opened");
+
+  if (n_bytes_recvd == -1)
+  {
+    perror ("recv() failed");
+    exit (n_bytes_recvd);
   }
 
-  //if (n_bytes_recvd == -1)
-  //{
-    //fputs ("error", stderr);
-    //exit (n_bytes_recvd);
-  //}
   pfds[0].events = POLLOUT; // Alert me when I can send() data to this socket without blocking.
 
   int num_events = poll(pfds, 1, 2000);
@@ -164,7 +167,7 @@ recv_file (struct conninfo *conninfo)
   {
     if (pfds[0].revents & POLLOUT)
     {
-      snprintf (buff, sizeof buff, "%s %li bytes", f_exists == 0 ? "Received" : "File already exists. Received", n_bytes_total);
+      snprintf (buff, sizeof buff, "%s %li bytes", f_exists == 0 ? "Received " : "File already exists. Received", n_bytes_total);
       puts ("Sending confirmation to client");
       ssize_t s_r = send (pfds[0].fd, buff, strlen (buff) + 1, 0);
       if (s_r >=0)
@@ -174,15 +177,8 @@ recv_file (struct conninfo *conninfo)
     }
   }
 
-  //sleep (1);
-  //snprintf (buff, sizeof buff, "Received %li bytes", n_bytes_total);
-  //puts ("Sending confirmation to client");
-  //ssize_t s_r = send (conninfo->connfd, buff, strlen (buff) + 1, 0);
-  //printf ("%li bytes sent\n", s_r);
-  //if (s_r <= 0)
-    //perror ("send");
-
-  puts ("\nCompleted.");
+  putchar ('\n');
+  puts ("Completed.");
 
   return f_exists;
 }
@@ -241,7 +237,8 @@ accept_connection (struct conninfo *conninfo)
     return conninfo->connfd;
   }
 
-  puts ("Client connected\n");
+  puts ("Client connected");
+  putchar ('\n');
 
   // Lose the pesky "address already in use" error message
   int yes = 1;
@@ -296,6 +293,9 @@ main (int argc, char *argv[])
   int f_exists = recv_file (&conninfo);
   puts ("Closing socket");
   if (close (conninfo.sockfd))
+    perror("close() failed");
+
+  if (close (conninfo.connfd))
     perror("close() failed");
 
   return f_exists;

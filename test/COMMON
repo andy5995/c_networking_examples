@@ -1,0 +1,12 @@
+if test -z "${MESON_BUILD_ROOT}"; then
+  echo "This script is used by the build system. Use 'ninja test' or
+  echo 'meson test --setup=valgrind' from the builddir."
+  exit 1
+fi
+
+XFER_FILE_BASENAME="tcp_file_transfer_server"
+XFER_FILE_URI="${MESON_BUILD_ROOT}/tcp_file_transfer_server"
+
+if [ "${PORT}" = "" ]; then
+  PORT=8080
+fi

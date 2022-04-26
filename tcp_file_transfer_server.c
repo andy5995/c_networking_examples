@@ -26,16 +26,17 @@
 
 */
 
-#include <stdio.h>              // BUFSIZ
+#include <errno.h>
+#include <limits.h>             // PATH_MAX
 #include <netdb.h>
 #include <netinet/in.h>
+#include <poll.h>
+#include <stdio.h>              // BUFSIZ
+#include <stdlib.h>             // exit()
 #include <string.h>
-#include <unistd.h>
 #include <sys/socket.h>
 #include <sys/types.h>
-#include <limits.h>             // PATH_MAX
-#include <errno.h>
-#include <stdlib.h>             // exit()
+#include <unistd.h>
 
 struct conninfo
 {
@@ -44,14 +45,15 @@ struct conninfo
   int connfd;
 };
 
+
 /*
  * recv_file
  * receive data from the client, obtain the filename and write the
  * remaining data to a file
  *
  */
-static void
-recv_file (const int connfd)
+static int
+recv_file (struct conninfo *conninfo)
 {
   char buff[BUFSIZ];
   char filename[PATH_MAX];
@@ -59,77 +61,129 @@ recv_file (const int connfd)
   _Bool have_filename = 0;
   ssize_t n_bytes_recvd = 0;
   FILE *fp = NULL;
+  _Bool f_exists = 0;
   size_t n_bytes_total = 0;
+  bzero (buff, sizeof buff);
 
-  while ((n_bytes_recvd = recv (connfd, buff, sizeof (buff), 0)) != 0)
+  struct pollfd pfds[1]; // More if you want to monitor more
+  pfds[0].fd = conninfo->connfd;
+  pfds[0].events = POLLIN; // Alert me when I can read() data from this socket without blocking.
+
+  for (;;)
   {
-    if (n_bytes_recvd == -1)
+    int num_events = poll(pfds, 1, 250); // 250 milliseconds
+    if (num_events == 0)
     {
-      fputs ("error", stderr);
-      exit (n_bytes_recvd);
+      puts ("Completed receiving data");
+      break;
     }
-
-    char *buf_file_dat_ptr = buff;
-
-    if (!have_filename)
+    else
     {
-      ssize_t i;
-      for (i = 0; i < n_bytes_recvd; i++)
+      if (pfds[0].revents & POLLIN)
       {
-        *filename_ptr++ = buff[i];
-        if (buff[i] == '\0')
+        n_bytes_recvd = recv (conninfo->connfd, buff, sizeof (buff), 0);
+        char *buf_file_dat_ptr = buff;
+        if (!have_filename)
         {
-          have_filename = 1;
-          // Skip to the byte after \0 (if there is any)
-          i++;
-          break;
-        }
-      }
+          ssize_t i;
+          for (i = 0; i < n_bytes_recvd; i++)
+          {
+            *filename_ptr++ = buff[i];
+            if (buff[i] == '\0')
+            {
+              have_filename = 1;
+              // Skip to the byte after \0 (if there is any)
+              i++;
+              break;
+            }
+          }
 
-      if (i == n_bytes_recvd)
-        continue;
+          if (i == n_bytes_recvd)
+            continue;
 
-      buf_file_dat_ptr += i;
-      n_bytes_recvd -= i;
-    }
-
-    if (have_filename)
-    {
-      if (fp == NULL)
-      {
-        if (access (filename, F_OK) == 0)
-        {
-          puts ("File already exists");
-          exit (EXIT_FAILURE);
+          buf_file_dat_ptr += i;
+          n_bytes_recvd -= i;
         }
 
-        fp = fopen (filename, "wb");
-        if (fp == NULL)
+        if (have_filename)
         {
-          perror ("fopen:");
-          exit (errno);
-        }
-        printf ("Receiving '%s'\n", filename);
-      }
+          if (fp == NULL)
+          {
+            if (access (filename, F_OK) == 0)
+            {
+              f_exists = 1;
+              break;
+            }
 
-      if (fwrite (buf_file_dat_ptr, 1, n_bytes_recvd, fp) !=
-          (size_t) n_bytes_recvd)
-      {
-        fputs ("Failed to write buff", stderr);
-        exit (-1);
+            fp = fopen (filename, "wb");
+            if (fp == NULL)
+            {
+              perror ("fopen:");
+              exit (errno);
+            }
+            printf ("Receiving '%s'\n", filename);
+          }
+
+          if (fwrite (buf_file_dat_ptr, 1, n_bytes_recvd, fp) !=
+              (size_t) n_bytes_recvd)
+          {
+            fputs ("Failed to write buff", stderr);
+            exit (-1);
+          }
+          n_bytes_total += n_bytes_recvd;
+        }
+        printf ("bytes received: %li\r", n_bytes_total);
       }
-      n_bytes_total += n_bytes_recvd;
     }
-    printf ("bytes received: %li\r", n_bytes_total);
   }
 
-  if (fclose (fp) == EOF)
-    strerror (errno);
+  if (fp != NULL)
+  {
+    if (fclose (fp) == EOF)
+      perror ("fclose() failed");
+  }
+  else
+    puts("Error: No file was opened");
 
-  puts ("\nCompleted.");
+  if (n_bytes_recvd == -1)
+  {
+    perror ("recv() failed");
+    exit (n_bytes_recvd);
+  }
 
-  return;
+  pfds[0].events = POLLOUT; // Alert me when I can send() data to this socket without blocking.
+
+  int num_events = poll(pfds, 1, 2000);
+
+  if (num_events == -1) {
+    perror("poll");
+    exit(1);
+  }
+
+  if (num_events == 0) {
+    printf("Poll timed out!\n");
+  }
+  else
+  {
+    if (pfds[0].revents & POLLOUT)
+    {
+      snprintf (buff, sizeof buff, "%s %li bytes", f_exists == 0 ? "Received " : "File already exists. Received", n_bytes_total);
+      puts (buff);
+      puts ("Sending confirmation to client");
+      ssize_t s_r = send (pfds[0].fd, buff, strlen (buff) + 1, 0);
+      if (s_r >=0)
+        printf ("%li bytes sent\n", s_r);
+      else
+        perror ("send");
+    }
+  }
+
+  putchar ('\n');
+  puts ("Completed.");
+
+  return f_exists;
 }
+
 
 static int
 accept_connection (struct conninfo *conninfo)
@@ -159,8 +213,8 @@ accept_connection (struct conninfo *conninfo)
     close (conninfo->sockfd);
     return -1;
   }
-  else
-    printf ("Socket successfully binded..\n");
+
+  printf ("Socket successfully binded..\n");
 
   // Now server is ready to listen and verification
   if ((listen (conninfo->sockfd, 5)) != 0)
@@ -177,17 +231,22 @@ accept_connection (struct conninfo *conninfo)
   // Accept the data packet from client and verification
   conninfo->connfd =
     accept (conninfo->sockfd, (struct sockaddr *) &cli, &len);
+  // sockfd only needed if more connections are desired
+  if (close (conninfo->sockfd))
+    perror("close() failed");
+
   if (conninfo->connfd < 0)
   {
     perror ("accept");
-    close (conninfo->sockfd);
     return conninfo->connfd;
   }
-  else
-    puts ("Client connected\n");
+
+  puts ("Client connected");
+  putchar ('\n');
 
   return 0;
 }
+
 
 static void
 show_usage (const char *prgname)
@@ -224,7 +283,10 @@ main (int argc, char *argv[])
   if (accept_connection (&conninfo) < 0)
     return -1;
 
-  recv_file (conninfo.connfd);
-  puts ("Closing socket");
-  return close (conninfo.sockfd);
+  int f_exists = recv_file (&conninfo);
+
+  if (close (conninfo.connfd))
+    perror("close() failed");
+
+  return f_exists;
 }

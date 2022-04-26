@@ -36,7 +36,7 @@
 #include <string.h>
 
 int
-main (int argc, char *argv[])
+main(int argc, char *argv[])
 {
   struct addrinfo hints;
   struct addrinfo *result, *rp;
@@ -47,22 +47,22 @@ main (int argc, char *argv[])
 
   if (argc < 3)
   {
-    fprintf (stderr, "Usage: %s host port msg...\n", argv[0]);
+    fprintf(stderr, "Usage: %s host port msg...\n", argv[0]);
     return -1;
   }
 
   /* Obtain address(es) matching host/port */
 
-  memset (&hints, 0, sizeof (struct addrinfo));
+  memset(&hints, 0, sizeof(struct addrinfo));
   hints.ai_family = AF_UNSPEC;  /* Allow IPv4 or IPv6 */
   hints.ai_socktype = SOCK_DGRAM;       /* Datagram socket */
   hints.ai_flags = 0;
   hints.ai_protocol = 0;        /* Any protocol */
 
-  s = getaddrinfo (argv[1], argv[2], &hints, &result);
+  s = getaddrinfo(argv[1], argv[2], &hints, &result);
   if (s != 0)
   {
-    fprintf (stderr, "getaddrinfo: %s\n", gai_strerror (s));
+    fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(s));
     return -1;
   }
 
@@ -73,52 +73,52 @@ main (int argc, char *argv[])
 
   for (rp = result; rp != NULL; rp = rp->ai_next)
   {
-    sfd = socket (rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+    sfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
     if (sfd == -1)
       continue;
 
-    if (connect (sfd, rp->ai_addr, rp->ai_addrlen) != -1)
+    if (connect(sfd, rp->ai_addr, rp->ai_addrlen) != -1)
       break;                    /* Success */
 
-    close (sfd);
+    close(sfd);
   }
 
   if (rp == NULL)
   {                             /* No address succeeded */
-    fputs ("Could not connect\n", stderr);
+    fputs("Could not connect\n", stderr);
     return -1;
   }
 
-  freeaddrinfo (result);        /* No longer needed */
+  freeaddrinfo(result);         /* No longer needed */
 
   /* Send remaining command-line arguments as separate
      datagrams, and read responses from server */
 
   for (j = 3; j < argc; j++)
   {
-    len = strlen (argv[j]) + 1;
+    len = strlen(argv[j]) + 1;
     /* +1 for terminating null byte */
 
     if (len + 1 > BUFSIZ)
     {
-      fprintf (stderr, "Ignoring long message in argument %d\n", j);
+      fprintf(stderr, "Ignoring long message in argument %d\n", j);
       continue;
     }
 
-    if (write (sfd, argv[j], len) != len)
+    if (write(sfd, argv[j], len) != len)
     {
-      fputs ("partial/failed write\n", stderr);
+      fputs("partial/failed write\n", stderr);
       return -1;
     }
 
-    nread = read (sfd, buf, BUFSIZ);
+    nread = read(sfd, buf, BUFSIZ);
     if (nread == -1)
     {
-      perror ("read");
+      perror("read");
       return -1;
     }
 
-    printf ("Received %ld bytes: %s\n", (long) nread, buf);
+    printf("Received %ld bytes: %s\n", (long) nread, buf);
   }
 
   return 0;

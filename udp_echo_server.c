@@ -40,7 +40,7 @@
  * only needed to demonstrate how to get and display the IP.
 */
 static void
-show_ip (struct addrinfo *rp)
+show_ip(struct addrinfo *rp)
 {
   void *addr;
   char *ipver;
@@ -61,14 +61,14 @@ show_ip (struct addrinfo *rp)
   }
 
   // convert the IP to a string and print it:
-  inet_ntop (rp->ai_family, addr, ipstr, sizeof ipstr);
-  printf ("  %s: %s\n", ipver, ipstr);
+  inet_ntop(rp->ai_family, addr, ipstr, sizeof ipstr);
+  printf("  %s: %s\n", ipver, ipstr);
 
   return;
 }
 
 int
-main (int argc, char *argv[])
+main(int argc, char *argv[])
 {
   struct addrinfo hints;
   struct addrinfo *result, *rp;
@@ -80,11 +80,11 @@ main (int argc, char *argv[])
 
   if (argc != 2)
   {
-    fprintf (stderr, "Usage: %s port\n", argv[0]);
+    fprintf(stderr, "Usage: %s port\n", argv[0]);
     return -1;
   }
 
-  memset (&hints, 0, sizeof (struct addrinfo));
+  memset(&hints, 0, sizeof(struct addrinfo));
   hints.ai_family = AF_UNSPEC;  /* Allow IPv4 or IPv6 */
   hints.ai_socktype = SOCK_DGRAM;       /* Datagram socket */
   hints.ai_flags = AI_PASSIVE;  /* For wildcard IP address */
@@ -93,10 +93,10 @@ main (int argc, char *argv[])
   hints.ai_addr = NULL;
   hints.ai_next = NULL;
 
-  s = getaddrinfo (NULL, argv[1], &hints, &result);
+  s = getaddrinfo(NULL, argv[1], &hints, &result);
   if (s != 0)
   {
-    fprintf (stderr, "getaddrinfo: %s\n", gai_strerror (s));
+    fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(s));
     return -1;
   }
 
@@ -106,60 +106,59 @@ main (int argc, char *argv[])
      and) try the next address. */
   for (rp = result; rp != NULL; rp = rp->ai_next)
   {
-    show_ip (rp);
+    show_ip(rp);
 
-    sfd = socket (rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+    sfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
     if (sfd == -1)
       continue;
 
-    if (bind (sfd, rp->ai_addr, rp->ai_addrlen) == 0)
+    if (bind(sfd, rp->ai_addr, rp->ai_addrlen) == 0)
       break;                    /* Success */
 
-    close (sfd);
+    close(sfd);
   }
 
   if (rp == NULL)
   {                             /* No address succeeded */
-    fputs ("Could not bind\n", stderr);
+    fputs("Could not bind\n", stderr);
     return -1;
   }
 
-  freeaddrinfo (result);        /* No longer needed */
+  freeaddrinfo(result);         /* No longer needed */
 
   /* Read datagrams and echo them back to sender */
   for (;;)
   {
-    peer_addr_len = sizeof (struct sockaddr_storage);
-    nread = recvfrom (sfd, buf, BUFSIZ, 0,
-                      (struct sockaddr *) &peer_addr, &peer_addr_len);
+    peer_addr_len = sizeof(struct sockaddr_storage);
+    nread = recvfrom(sfd, buf, BUFSIZ, 0,
+                     (struct sockaddr *) &peer_addr, &peer_addr_len);
     if (nread == -1)
       continue;                 /* Ignore failed request */
 
     char host[NI_MAXHOST], service[NI_MAXSERV];
 
-    s = getnameinfo ((struct sockaddr *) &peer_addr,
-                     peer_addr_len, host, NI_MAXHOST,
-                     service, NI_MAXSERV, NI_NUMERICSERV);
+    s = getnameinfo((struct sockaddr *) &peer_addr,
+                    peer_addr_len, host, NI_MAXHOST,
+                    service, NI_MAXSERV, NI_NUMERICSERV);
     if (s == 0)
-      printf ("Received %ld bytes from %s:%s\n", (long) nread, host, service);
+      printf("Received %ld bytes from %s:%s\n", (long) nread, host, service);
     else
-      fprintf (stderr, "getnameinfo: %s\n", gai_strerror (s));
+      fprintf(stderr, "getnameinfo: %s\n", gai_strerror(s));
 
-    ssize_t r_sto =
-      sendto (sfd, buf, nread, 0, (struct sockaddr *) &peer_addr,
-              peer_addr_len);
+    ssize_t r_sto = sendto(sfd, buf, nread, 0, (struct sockaddr *) &peer_addr,
+                           peer_addr_len);
 
-    if (strncasecmp (buf, "exit", 4) == 0)
+    if (strncasecmp(buf, "exit", 4) == 0)
     {
-      puts ("Received 'exit'");
-      close (sfd);
+      puts("Received 'exit'");
+      close(sfd);
       return 0;
     }
 
     if (r_sto != nread)
     {
-      fputs ("Error sending response\n", stderr);
-      close (sfd);
+      fputs("Error sending response\n", stderr);
+      close(sfd);
       return r_sto;
     }
   }

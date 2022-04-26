@@ -38,40 +38,40 @@
 #include <unistd.h>
 
 void
-func (int sockfd)
+func(int sockfd)
 {
   char buff[BUFSIZ];
   int n;
   for (;;)
   {
-    bzero (buff, sizeof (buff));
-    fputs ("Enter the string : ", stdout);
+    bzero(buff, sizeof(buff));
+    fputs("Enter the string : ", stdout);
     n = 0;
-    while ((buff[n++] = getchar ()) != '\n');
-    write (sockfd, buff, sizeof (buff));
-    bzero (buff, sizeof (buff));
-    read (sockfd, buff, sizeof (buff));
-    printf ("From Server : %s", buff);
-    if ((strncmp (buff, "exit", 4)) == 0)
+    while ((buff[n++] = getchar()) != '\n');
+    write(sockfd, buff, sizeof(buff));
+    bzero(buff, sizeof(buff));
+    read(sockfd, buff, sizeof(buff));
+    printf("From Server : %s", buff);
+    if ((strncmp(buff, "exit", 4)) == 0)
     {
-      printf ("Client Exit...\n");
+      printf("Client Exit...\n");
       break;
     }
   }
 }
 
 static void
-show_usage (const char *prgname)
+show_usage(const char *prgname)
 {
-  printf ("Usage: %s [OPTIONS]\n\n", prgname);
-  puts ("\
+  printf("Usage: %s [OPTIONS]\n\n", prgname);
+  puts("\
   -a <address>\n\
   -p <port>\n");
   return;
 }
 
 int
-main (int argc, char *argv[])
+main(int argc, char *argv[])
 {
   int opt;
   char *default_host = "127.0.0.1";
@@ -79,18 +79,19 @@ main (int argc, char *argv[])
   const int default_port = 8080;
   int port = default_port;
 
-  while ((opt = getopt (argc, argv, "a:p:h")) != -1)
+  while ((opt = getopt(argc, argv, "a:p:h")) != -1)
   {
     switch (opt)
     {
     case 'p':
-      port = atoi (optarg);
+      port = atoi(optarg);
       break;
     case 'a':
       host = optarg;
       break;
-    case 'h': default:
-      show_usage (argv[0]);
+    case 'h':
+    default:
+      show_usage(argv[0]);
       return 0;
     }
   }
@@ -99,33 +100,33 @@ main (int argc, char *argv[])
   struct sockaddr_in servaddr, cli;
 
   // socket create and verification
-  sockfd = socket (AF_INET, SOCK_STREAM, 0);
+  sockfd = socket(AF_INET, SOCK_STREAM, 0);
   if (sockfd == -1)
   {
-    printf ("socket creation failed...\n");
-    exit (0);
+    printf("socket creation failed...\n");
+    exit(0);
   }
   else
-    printf ("Socket successfully created..\n");
-  bzero (&servaddr, sizeof (servaddr));
+    printf("Socket successfully created..\n");
+  bzero(&servaddr, sizeof(servaddr));
 
   // assign IP, port
   servaddr.sin_family = AF_INET;
-  servaddr.sin_addr.s_addr = inet_addr (host);
-  servaddr.sin_port = htons (port);
+  servaddr.sin_addr.s_addr = inet_addr(host);
+  servaddr.sin_port = htons(port);
 
   // connect the client socket to server socket
-  if (connect (sockfd, (struct sockaddr *) & servaddr, sizeof (servaddr)) != 0)
+  if (connect(sockfd, (struct sockaddr *) &servaddr, sizeof(servaddr)) != 0)
   {
-    printf ("connection with the server failed...\n");
-    exit (0);
+    printf("connection with the server failed...\n");
+    exit(0);
   }
   else
-    printf ("connected to the server..\n");
+    printf("connected to the server..\n");
 
   // function for chat
-  func (sockfd);
+  func(sockfd);
 
   // close the socket
-  return close (sockfd);
+  return close(sockfd);
 }

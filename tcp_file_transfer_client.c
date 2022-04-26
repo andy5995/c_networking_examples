@@ -93,7 +93,7 @@ func (int sockfd, const char *file)
   while ((n_bytes_recvd = recv (sockfd, buff, sizeof (buff), 0)) != 0)
   {
     fputs (buff, stdout);
-    bzero (buff, sizeof buff);
+    *buff = '\0';
   }
 
   if (n_bytes_recvd < 0)

@@ -11,7 +11,7 @@ fi
 # Give the server time to bind and listen ;)
 sleep 3s
 # Test by transferring the server binary
-${VALGRIND} ${MESON_BUILD_ROOT}/tcp_file_transfer_client -f ${XFER_FILE_URI}
+${VALGRIND} ${MESON_BUILD_ROOT}/tcp_file_transfer_client -f ${XFER_FILE_URI} -p ${PORT}
 
 
 exit 0

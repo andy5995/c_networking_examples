@@ -26,17 +26,17 @@
 
 */
 
-#include <stdio.h>              // BUFSIZ
+#include <errno.h>
+#include <limits.h>             // PATH_MAX
 #include <netdb.h>
 #include <netinet/in.h>
+#include <poll.h>
+#include <stdio.h>              // BUFSIZ
+#include <stdlib.h>             // exit()
 #include <string.h>
-#include <unistd.h>
 #include <sys/socket.h>
 #include <sys/types.h>
-#include <limits.h>             // PATH_MAX
-#include <errno.h>
-#include <stdlib.h>             // exit()
-#include <poll.h>
+#include <unistd.h>
 
 struct conninfo
 {
@@ -168,6 +168,7 @@ recv_file (struct conninfo *conninfo)
     if (pfds[0].revents & POLLOUT)
     {
       snprintf (buff, sizeof buff, "%s %li bytes", f_exists == 0 ? "Received " : "File already exists. Received", n_bytes_total);
+      puts (buff);
       puts ("Sending confirmation to client");
       ssize_t s_r = send (pfds[0].fd, buff, strlen (buff) + 1, 0);
       if (s_r >=0)
@@ -230,26 +231,18 @@ accept_connection (struct conninfo *conninfo)
   // Accept the data packet from client and verification
   conninfo->connfd =
     accept (conninfo->sockfd, (struct sockaddr *) &cli, &len);
+  // sockfd only needed if more connections are desired
+  if (close (conninfo->sockfd))
+    perror("close() failed");
+
   if (conninfo->connfd < 0)
   {
     perror ("accept");
-    close (conninfo->sockfd);
     return conninfo->connfd;
   }
 
   puts ("Client connected");
   putchar ('\n');
-
-  // Lose the pesky "address already in use" error message
-  int yes = 1;
-  int rc = setsockopt(conninfo->sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes));
-  if (rc < 0)
-  {
-    perror("setsockopt() failed");
-    close(conninfo->sockfd);
-    return -1;
-  }
-  // Doesn't actually work
 
   return 0;
 }
@@ -291,9 +284,6 @@ main (int argc, char *argv[])
     return -1;
 
   int f_exists = recv_file (&conninfo);
-  puts ("Closing socket");
-  if (close (conninfo.sockfd))
-    perror("close() failed");
 
   if (close (conninfo.connfd))
     perror("close() failed");

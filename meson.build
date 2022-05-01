@@ -30,10 +30,23 @@ example = [
   'udp_echo_server'
   ]
 
+buildtarget = library(
+  'lib',
+  'lib.c',
+  # include_directories : inc,
+  version : '0.1.0',
+  soversion : '0',
+  install: false)
+
+# How to use in a superproject and other info
+# https://mesonbuild.com/Subprojects.html
+dep_lib = declare_dependency(link_with : buildtarget)
+
 foreach file : example
   executable(
     file,
     file + '.c',
+    dependencies: dep_lib,
     install: false
   )
 endforeach

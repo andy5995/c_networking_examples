@@ -36,6 +36,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include "lib.h"
 
 void
 func(int sockfd)
@@ -74,20 +75,21 @@ int
 main(int argc, char *argv[])
 {
   int opt;
+  conn_info conn_inf;
   char *default_host = "127.0.0.1";
-  char *host = default_host;
-  const int default_port = 8080;
-  int port = default_port;
+  conn_inf.host = default_host;
+  char *default_port = "8080";
+  conn_inf.port = default_port;
 
   while ((opt = getopt(argc, argv, "a:p:h")) != -1)
   {
     switch (opt)
     {
     case 'p':
-      port = atoi(optarg);
+      conn_inf.port = optarg;
       break;
     case 'a':
-      host = optarg;
+      conn_inf.host = optarg;
       break;
     case 'h':
     default:
@@ -96,37 +98,13 @@ main(int argc, char *argv[])
     }
   }
 
-  int sockfd, connfd;
-  struct sockaddr_in servaddr, cli;
-
-  // socket create and verification
-  sockfd = socket(AF_INET, SOCK_STREAM, 0);
-  if (sockfd == -1)
-  {
-    printf("socket creation failed...\n");
-    exit(0);
-  }
-  else
-    printf("Socket successfully created..\n");
-  bzero(&servaddr, sizeof(servaddr));
-
-  // assign IP, port
-  servaddr.sin_family = AF_INET;
-  servaddr.sin_addr.s_addr = inet_addr(host);
-  servaddr.sin_port = htons(port);
-
-  // connect the client socket to server socket
-  if (connect(sockfd, (struct sockaddr *) &servaddr, sizeof(servaddr)) != 0)
-  {
-    printf("connection with the server failed...\n");
-    exit(0);
-  }
-  else
-    printf("connected to the server..\n");
+  int res = create_conn(&conn_inf);
+  if (res < 0)
+    return res;
 
   // function for chat
-  func(sockfd);
+  func(conn_inf.sockfd);
 
   // close the socket
-  return close(sockfd);
+  return close(conn_inf.sockfd);
 }

@@ -1,9 +1,12 @@
 #include <string.h>
 #include <unistd.h>
-#include "lib.h"
+#include "netex.h"
+
+char *default_host = "127.0.0.1";
+char *default_port = "8080";
 
 int
-create_conn(conn_info *conn_inf)
+tcp_client_conn(conn_info *conn_inf)
 {
   struct addrinfo hints;
   struct addrinfo *result, *rp;

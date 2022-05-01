@@ -36,7 +36,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <unistd.h>
-#include "lib.h"
+#include "netex.h"
 
 void
 func(int sockfd)
@@ -76,9 +76,7 @@ main(int argc, char *argv[])
 {
   int opt;
   conn_info conn_inf;
-  char *default_host = "127.0.0.1";
   conn_inf.host = default_host;
-  char *default_port = "8080";
   conn_inf.port = default_port;
 
   while ((opt = getopt(argc, argv, "a:p:h")) != -1)
@@ -98,7 +96,7 @@ main(int argc, char *argv[])
     }
   }
 
-  int res = create_conn(&conn_inf);
+  int res = tcp_client_conn(&conn_inf);
   if (res < 0)
     return res;
 

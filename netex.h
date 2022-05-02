@@ -4,13 +4,14 @@
 #include <stdio.h>
 #include <sys/socket.h>
 
-extern char *default_host;
-extern char *default_port;
-
 typedef struct {
   char *host;
   char *port;
   int sockfd;
 } conn_info;
 
-int tcp_client_conn(conn_info *conn_inf);
+extern conn_info conn_inf;
+
+int get_tcp_client_sockfd(void);
+
+int get_udp_server_sockfd(void);

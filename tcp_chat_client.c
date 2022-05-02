@@ -75,9 +75,6 @@ int
 main(int argc, char *argv[])
 {
   int opt;
-  conn_info conn_inf;
-  conn_inf.host = default_host;
-  conn_inf.port = default_port;
 
   while ((opt = getopt(argc, argv, "a:p:h")) != -1)
   {
@@ -96,7 +93,7 @@ main(int argc, char *argv[])
     }
   }
 
-  int res = tcp_client_conn(&conn_inf);
+  int res = get_tcp_client_sockfd();
   if (res < 0)
     return res;
 

@@ -34,7 +34,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "lib.h"
+#include "netex.h"
 
 int
 func(int sockfd, const char *file)
@@ -121,11 +121,6 @@ int
 main(int argc, char *argv[])
 {
   int opt;
-  conn_info conn_inf;
-  char *default_host = "127.0.0.1";
-  conn_inf.host = default_host;
-  char *default_port = "8080";
-  conn_inf.port = default_port;
   char *file = NULL;
 
   while ((opt = getopt(argc, argv, "f:a:p:h")) != -1)
@@ -154,10 +149,10 @@ main(int argc, char *argv[])
     exit(EXIT_FAILURE);
   }
 
-  int res = create_conn(&conn_inf);
+  int res = get_tcp_client_sockfd();
   if (res < 0)
     return res;
-  
+
   int f_exists = func(conn_inf.sockfd, file);
 
   puts("\nClosing socket");

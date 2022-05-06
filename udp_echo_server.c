@@ -35,109 +35,35 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <arpa/inet.h>
-
-/* show_ip
- * only needed to demonstrate how to get and display the IP.
-*/
-static void
-show_ip(struct addrinfo *rp)
-{
-  void *addr;
-  char *ipver;
-  char ipstr[INET6_ADDRSTRLEN];
-  // get the pointer to the address itself,
-  // different fields in IPv4 and IPv6:
-  if (rp->ai_family == AF_INET)
-  {                             // IPv4
-    struct sockaddr_in *ipv4 = (struct sockaddr_in *) rp->ai_addr;
-    addr = &(ipv4->sin_addr);
-    ipver = "IPv4";
-  }
-  else
-  {                             // IPv6
-    struct sockaddr_in6 *ipv6 = (struct sockaddr_in6 *) rp->ai_addr;
-    addr = &(ipv6->sin6_addr);
-    ipver = "IPv6";
-  }
-
-  // convert the IP to a string and print it:
-  inet_ntop(rp->ai_family, addr, ipstr, sizeof ipstr);
-  printf("  %s: %s\n", ipver, ipstr);
-
-  return;
-}
+#include "netex.h"
 
 int
 main(int argc, char *argv[])
 {
-  struct addrinfo hints;
-  struct addrinfo *result, *rp;
-  int sfd, s;
-  struct sockaddr_storage peer_addr;
-  socklen_t peer_addr_len;
-  ssize_t nread;
-  char buf[BUFSIZ];
-
   if (argc != 2)
   {
     fprintf(stderr, "Usage: %s port\n", argv[0]);
     return -1;
   }
 
-  memset(&hints, 0, sizeof(struct addrinfo));
-  hints.ai_family = AF_UNSPEC;  /* Allow IPv4 or IPv6 */
-  hints.ai_socktype = SOCK_DGRAM;       /* Datagram socket */
-  hints.ai_flags = AI_PASSIVE;  /* For wildcard IP address */
-  hints.ai_protocol = 0;        /* Any protocol */
-  hints.ai_canonname = NULL;
-  hints.ai_addr = NULL;
-  hints.ai_next = NULL;
+  conn_inf.port = argv[1];
 
-  s = getaddrinfo(NULL, argv[1], &hints, &result);
-  if (s != 0)
-  {
-    fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(s));
-    return -1;
-  }
-
-  /* getaddrinfo() returns a list of address structures.
-     Try each address until we successfully bind(2).
-     If socket(2) (or bind(2)) fails, we (close the socket
-     and) try the next address. */
-  for (rp = result; rp != NULL; rp = rp->ai_next)
-  {
-    show_ip(rp);
-
-    sfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
-    if (sfd == -1)
-      continue;
-
-    if (bind(sfd, rp->ai_addr, rp->ai_addrlen) == 0)
-      break;                    /* Success */
-
-    close(sfd);
-  }
-
-  if (rp == NULL)
-  {                             /* No address succeeded */
-    fputs("Could not bind\n", stderr);
-    return -1;
-  }
-
-  freeaddrinfo(result);         /* No longer needed */
+  int r = get_udp_server_sockfd();
 
   /* Read datagrams and echo them back to sender */
   for (;;)
   {
-    peer_addr_len = sizeof(struct sockaddr_storage);
-    nread = recvfrom(sfd, buf, BUFSIZ, 0,
+    struct sockaddr_storage peer_addr;
+    char buf[BUFSIZ];
+    socklen_t peer_addr_len = sizeof(struct sockaddr_storage);
+    ssize_t nread = recvfrom(conn_inf.sockfd, buf, BUFSIZ, 0,
                      (struct sockaddr *) &peer_addr, &peer_addr_len);
     if (nread == -1)
       continue;                 /* Ignore failed request */
 
     char host[NI_MAXHOST], service[NI_MAXSERV];
 
-    s = getnameinfo((struct sockaddr *) &peer_addr,
+    int s = getnameinfo((struct sockaddr *) &peer_addr,
                     peer_addr_len, host, NI_MAXHOST,
                     service, NI_MAXSERV, NI_NUMERICSERV);
     if (s == 0)
@@ -145,20 +71,20 @@ main(int argc, char *argv[])
     else
       fprintf(stderr, "getnameinfo: %s\n", gai_strerror(s));
 
-    ssize_t r_sto = sendto(sfd, buf, nread, 0, (struct sockaddr *) &peer_addr,
+    ssize_t r_sto = sendto(conn_inf.sockfd, buf, nread, 0, (struct sockaddr *) &peer_addr,
                            peer_addr_len);
 
     if (strncasecmp(buf, "exit", 4) == 0)
     {
       puts("Received 'exit'");
-      close(sfd);
+      close(conn_inf.sockfd);
       return 0;
     }
 
     if (r_sto != nread)
     {
       fputs("Error sending response\n", stderr);
-      close(sfd);
+      close(conn_inf.sockfd);
       return r_sto;
     }
   }

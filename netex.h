@@ -10,4 +10,8 @@ typedef struct {
   int sockfd;
 } conn_info;
 
-int create_conn(conn_info *conn_inf);
+extern conn_info conn_inf;
+
+int get_tcp_client_sockfd(void);
+
+int get_udp_server_sockfd(void);

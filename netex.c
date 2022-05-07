@@ -1,10 +1,12 @@
 #include <string.h>
 #include <unistd.h>
+#include <stdlib.h>
 #include "netex.h"
 
 conn_info conn_inf = {
   "127.0.0.1",
   "8080",
+  0,
   0
 };
 
@@ -92,7 +94,51 @@ get_tcp_client_sockfd(void)
   return 0;
 }
 
-int get_udp_server_sockfd(void) {
+int
+get_tcp_server_sockfd(void)
+{
+  struct sockaddr_in servaddr;
+
+  conn_inf.sockfd = socket(AF_INET, SOCK_STREAM, 0);
+  if (conn_inf.sockfd == -1)
+  {
+    perror("socket");
+    return -1;
+  }
+  else
+    puts("Socket successfully created");
+  bzero(&servaddr, sizeof(servaddr));
+
+  servaddr.sin_family = AF_UNSPEC;
+  servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+  servaddr.sin_port = htons(atoi(conn_inf.port));
+
+  // Binding newly created socket to given IP and verification
+  if ((bind
+       (conn_inf.sockfd, (struct sockaddr *) &servaddr,
+        sizeof(servaddr))) != 0)
+  {
+    perror("bind");
+    close(conn_inf.sockfd);
+    return -1;
+  }
+
+  printf("Socket successfully binded..\n");
+  // Now server is ready to listen and verification
+  if ((listen(conn_inf.sockfd, 5)) != 0)
+  {
+    perror("listen");
+    close(conn_inf.sockfd);
+    return -1;
+  }
+  else
+    printf("Server listening on port %s...\n", conn_inf.port);
+  return 0;
+}
+
+int
+get_udp_server_sockfd(void)
+{
   struct addrinfo hints;
   struct addrinfo *result, *rp;
 

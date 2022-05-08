@@ -70,35 +70,11 @@ func()
   }
 }
 
-static void
-show_usage(const char *prgname)
-{
-  printf("Usage: %s [OPTIONS]\n\n", prgname);
-  puts("\
-  -a <address>\n\
-  -p <port>\n");
-  return;
-}
 
 int
 main(int argc, char *argv[])
 {
-
-  int opt;
-
-  while ((opt = getopt(argc, argv, "p:h")) != -1)
-  {
-    switch (opt)
-    {
-    case 'p':
-      conn_inf.port = optarg;
-      break;
-    case 'h':
-    default:
-      show_usage(argv[0]);
-      return 0;
-    }
-  }
+  parse_server_opts(argc, argv);
 
   if (get_tcp_server_sockfd() < 0)
   {

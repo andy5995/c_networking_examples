@@ -19,3 +19,6 @@ int get_tcp_client_sockfd(void);
 int get_tcp_server_sockfd(void);
 
 int get_udp_server_sockfd(void);
+
+void
+parse_server_opts (const int argc, char *argv[]);

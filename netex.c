@@ -185,3 +185,33 @@ get_udp_server_sockfd(void)
   freeaddrinfo(result);         /* No longer needed */
   return 0;
 }
+
+static void
+show_server_usage(const char *prgname)
+{
+  printf("Usage: %s [OPTIONS]\n\n", prgname);
+  puts("\
+  -p <port>\n");
+  return;
+}
+
+void
+parse_server_opts(const int argc, char *argv[])
+{
+  int opt;
+
+  while ((opt = getopt(argc, argv, "p:h")) != -1)
+  {
+    switch (opt)
+    {
+    case 'p':
+      conn_inf.port = optarg;
+      break;
+    case 'h':
+    default:
+      show_server_usage(argv[0]);
+      exit(0);
+    }
+  }
+  return;
+}

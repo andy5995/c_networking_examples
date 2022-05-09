@@ -57,22 +57,23 @@ main(int argc, char *argv[])
     char buf[BUFSIZ];
     socklen_t peer_addr_len = sizeof(struct sockaddr_storage);
     ssize_t nread = recvfrom(conn_inf.sockfd, buf, BUFSIZ, 0,
-                     (struct sockaddr *) &peer_addr, &peer_addr_len);
+                             (struct sockaddr *) &peer_addr, &peer_addr_len);
     if (nread == -1)
       continue;                 /* Ignore failed request */
 
     char host[NI_MAXHOST], service[NI_MAXSERV];
 
     int s = getnameinfo((struct sockaddr *) &peer_addr,
-                    peer_addr_len, host, NI_MAXHOST,
-                    service, NI_MAXSERV, NI_NUMERICSERV);
+                        peer_addr_len, host, NI_MAXHOST,
+                        service, NI_MAXSERV, NI_NUMERICSERV);
     if (s == 0)
       printf("Received %ld bytes from %s:%s\n", (long) nread, host, service);
     else
       fprintf(stderr, "getnameinfo: %s\n", gai_strerror(s));
 
-    ssize_t r_sto = sendto(conn_inf.sockfd, buf, nread, 0, (struct sockaddr *) &peer_addr,
-                           peer_addr_len);
+    ssize_t r_sto =
+      sendto(conn_inf.sockfd, buf, nread, 0, (struct sockaddr *) &peer_addr,
+             peer_addr_len);
 
     if (strncasecmp(buf, "exit", 4) == 0)
     {

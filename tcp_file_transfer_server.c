@@ -37,13 +37,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
-
-struct conninfo
-{
-  int port;
-  int sockfd;
-  int connfd;
-};
+#include "netex.h"
 
 
 /*
@@ -53,7 +47,7 @@ struct conninfo
  *
  */
 static int
-recv_file(struct conninfo *conninfo)
+recv_file(void)
 {
   char buff[BUFSIZ];
   char filename[PATH_MAX];
@@ -66,7 +60,7 @@ recv_file(struct conninfo *conninfo)
   bzero(buff, sizeof buff);
 
   struct pollfd pfds[1];        // More if you want to monitor more
-  pfds[0].fd = conninfo->connfd;
+  pfds[0].fd = conn_inf.connfd;
   pfds[0].events = POLLIN;      // Alert me when I can read() data from this socket without blocking.
 
   for (;;)
@@ -81,7 +75,7 @@ recv_file(struct conninfo *conninfo)
     {
       if (pfds[0].revents & POLLIN)
       {
-        n_bytes_recvd = recv(conninfo->connfd, buff, sizeof(buff), 0);
+        n_bytes_recvd = recv(conn_inf.connfd, buff, sizeof(buff), 0);
         char *buf_file_dat_ptr = buff;
         if (!have_filename)
         {
@@ -190,58 +184,23 @@ recv_file(struct conninfo *conninfo)
 
 
 static int
-accept_connection(struct conninfo *conninfo)
+accept_connection(void)
 {
-  struct sockaddr_in servaddr, cli;
+  get_tcp_server_sockfd();
 
-  conninfo->sockfd = socket(AF_INET, SOCK_STREAM, 0);
-  if (conninfo->sockfd == -1)
-  {
-    perror("socket");
-    return -1;
-  }
-  else
-    puts("Socket successfully created");
-  bzero(&servaddr, sizeof(servaddr));
-
-  servaddr.sin_family = AF_UNSPEC;
-  servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-  servaddr.sin_port = htons(conninfo->port);
-
-  // Binding newly created socket to given IP and verification
-  if ((bind
-       (conninfo->sockfd, (struct sockaddr *) &servaddr,
-        sizeof(servaddr))) != 0)
-  {
-    perror("bind");
-    close(conninfo->sockfd);
-    return -1;
-  }
-
-  printf("Socket successfully binded..\n");
-
-  // Now server is ready to listen and verification
-  if ((listen(conninfo->sockfd, 5)) != 0)
-  {
-    perror("listen");
-    close(conninfo->sockfd);
-    return -1;
-  }
-  else
-    printf("Server listening on port %d...\n", conninfo->port);
-
+  struct sockaddr_in cli;
   socklen_t len = sizeof(cli);
 
   // Accept the data packet from client and verification
-  conninfo->connfd = accept(conninfo->sockfd, (struct sockaddr *) &cli, &len);
+  conn_inf.connfd = accept(conn_inf.sockfd, (struct sockaddr *) &cli, &len);
   // sockfd only needed if more connections are desired
-  if (close(conninfo->sockfd))
+  if (close(conn_inf.sockfd))
     perror("close() failed");
 
-  if (conninfo->connfd < 0)
+  if (conn_inf.connfd < 0)
   {
     perror("accept");
-    return conninfo->connfd;
+    return conn_inf.connfd;
   }
 
   puts("Client connected");
@@ -251,44 +210,17 @@ accept_connection(struct conninfo *conninfo)
 }
 
 
-static void
-show_usage(const char *prgname)
-{
-  printf("Usage: %s [OPTIONS]\n\n", prgname);
-  puts("\
-  -p <port>\n");
-
-  return;
-}
-
 int
 main(int argc, char *argv[])
 {
-  struct conninfo conninfo;
-  int opt;
-  int default_port = 8080;
-  conninfo.port = default_port;
+  parse_server_opts(argc, argv);
 
-  while ((opt = getopt(argc, argv, "p:h")) != -1)
-  {
-    switch (opt)
-    {
-    case 'p':
-      conninfo.port = atoi(optarg);
-      break;
-    case 'h':
-    default:
-      show_usage(argv[0]);
-      return 0;
-    }
-  }
-
-  if (accept_connection(&conninfo) < 0)
+  if (accept_connection() < 0)
     return -1;
 
-  int f_exists = recv_file(&conninfo);
+  int f_exists = recv_file();
 
-  if (close(conninfo.connfd))
+  if (close(conn_inf.connfd))
     perror("close() failed");
 
   return f_exists;

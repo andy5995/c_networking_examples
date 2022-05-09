@@ -26,6 +26,7 @@ example = [
   'tcp_file_transfer_server',
   'tcp_chat_client',
   'tcp_chat_server',
+  'tcp_multiple_connections',
   'udp_echo_client',
   'udp_echo_server'
   ]

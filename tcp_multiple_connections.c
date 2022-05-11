@@ -1,5 +1,7 @@
 /*
-// Adapted from https://beej.us/guide/bgnet/html/#poll by Brian “Beej Jorgensen” Hall
+ *
+// Adapted from https://beej.us/guide/bgnet/html/#fnref29 (pollserver.c by
+// Brian “Beej Jorgensen” Hall <https://beej.us/>)
 
  tcp_multiple_connections.c
  https://github.com/andy5995/c_networking_examples
@@ -28,16 +30,15 @@
 
 */
 
+#include <arpa/inet.h>
 #include <errno.h>
-#include <stdio.h>
-#include <netdb.h>
 #include <netinet/in.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <unistd.h>
 #include <poll.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/socket.h>
+#include <unistd.h>
+
 #include "netex.h"
 
 // Get sockaddr, IPv4 or IPv6:
@@ -111,7 +112,7 @@ main(int argc, char *argv[])
   if (get_tcp_server_sockfd() < 0)
   {
     fputs("Error\n", stderr);
-    free (pfds); // free the memory (and eliminate the -fanalyzer warning)
+    free(pfds);                 // free the memory (and eliminate the -fanalyzer warning)
     return -1;
   }
 
@@ -146,9 +147,8 @@ main(int argc, char *argv[])
           addrlen = sizeof remoteaddr;
 
           // Newly accept()ed socket descriptor
-          int newfd =
-            accept(conn_inf.sockfd, (struct sockaddr *) &remoteaddr,
-                   &addrlen);
+          int newfd = accept(conn_inf.sockfd, (struct sockaddr *) &remoteaddr,
+                             &addrlen);
 
           if (newfd == -1)
           {
@@ -213,7 +213,7 @@ main(int argc, char *argv[])
       }                         // END got ready-to-read from poll()
     }                           // END looping through file descriptors
   }
-                               // END for(;;)--and you thought it would never end!
+  // END for(;;)--and you thought it would never end!
   free(pfds);
   return errno;
 }

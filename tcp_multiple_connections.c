@@ -111,6 +111,7 @@ main(int argc, char *argv[])
   if (get_tcp_server_sockfd() < 0)
   {
     fputs("Error\n", stderr);
+    free (pfds); // free the memory (and eliminate the -fanalyzer warning)
     return -1;
   }
 
@@ -128,7 +129,7 @@ main(int argc, char *argv[])
     if (poll_count == -1)
     {
       perror("poll");
-      exit(1);
+      break;
     }
 
     // Run through the existing connections looking for data to read
@@ -198,6 +199,7 @@ main(int argc, char *argv[])
               int dest_fd = pfds[j].fd;
 
               // Except the listener and ourselves
+              // Except the listener and ourselves
               if (dest_fd != conn_inf.sockfd && dest_fd != sender_fd)
               {
                 if (send(dest_fd, buf, nbytes, 0) == -1)
@@ -210,6 +212,8 @@ main(int argc, char *argv[])
         }                       // END handle data from client
       }                         // END got ready-to-read from poll()
     }                           // END looping through file descriptors
-  }                             // END for(;;)--and you thought it would never end!
-  return 0;
+  }
+                               // END for(;;)--and you thought it would never end!
+  free(pfds);
+  return errno;
 }

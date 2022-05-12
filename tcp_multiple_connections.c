@@ -94,9 +94,11 @@ main(int argc, char *argv[])
   struct sockaddr_storage remoteaddr;   // Client address
   socklen_t addrlen;
 
-  char buf[256];                // Buffer for client data
-
-  char remoteIP[INET6_ADDRSTRLEN];
+  if (get_tcp_server_sockfd() < 0)
+  {
+    fputs("Error\n", stderr);
+    return -1;
+  }
 
   // Start off with room for 5 connections
   // (We'll realloc as necessary)
@@ -107,13 +109,6 @@ main(int argc, char *argv[])
   {
     perror("malloc");
     return errno;
-  }
-
-  if (get_tcp_server_sockfd() < 0)
-  {
-    fputs("Error\n", stderr);
-    free(pfds);                 // free the memory (and eliminate the -fanalyzer warning)
-    return -1;
   }
 
   // Add the listener to set
@@ -158,6 +153,7 @@ main(int argc, char *argv[])
           {
             add_to_pfds(&pfds, newfd, &fd_count, &fd_size);
 
+            char remoteIP[INET6_ADDRSTRLEN];
             printf("pollserver: new connection from %s on "
                    "socket %d\n",
                    inet_ntop(remoteaddr.ss_family,
@@ -169,6 +165,7 @@ main(int argc, char *argv[])
         {
           // If not the listener, we're just a regular client
           int sender_fd = pfds[i].fd;
+          char buf[256];                // Buffer for client data
           int nbytes = recv(sender_fd, buf, sizeof buf, 0);
 
           if (nbytes <= 0)

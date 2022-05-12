@@ -65,7 +65,7 @@ recv_file(void)
 
   for (;;)
   {
-    int num_events = poll(pfds, 1, 250);        // 250 milliseconds
+    int num_events = poll(pfds, 1, 1000);        // 250 milliseconds
     if (num_events == 0)
     {
       puts("Completed receiving data");

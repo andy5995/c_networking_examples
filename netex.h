@@ -1,8 +1,3 @@
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <netinet/in.h>
-#include <stdio.h>
-#include <sys/socket.h>
 
 typedef struct
 {
@@ -20,5 +15,4 @@ int get_tcp_server_sockfd(void);
 
 int get_udp_server_sockfd(void);
 
-void
-parse_server_opts (const int argc, char *argv[]);
+void parse_server_opts(const int argc, char *argv[]);

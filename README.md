@@ -15,6 +15,15 @@ the server
 
 Simple chat program
 
+## TCP Chat server with multiple connections
+
+Handles multiple connections. The server will tell you when clients
+connect and disconnect. Every client will see the message sent by any
+other single client. Use any telnet program to connect.
+
+Adapted from [pollserver.c](https://beej.us/guide/bgnet/html/#fnref29)
+
+
 ## UDP echo server/client
 
 The server echoes a message sent by the client back to the client.
@@ -36,8 +45,11 @@ to change that yet.
 
 ## Compiling
 
-You can compile the c files individually, or use
-[meson](https://mesonbuild.com/) to build them all at once:
+You can compile the c files individually:
+
+    cc -Wall 'example.c' netex.c -o 'example'
+
+or use [meson](https://mesonbuild.com/) to build them all at once:
 
     meson builddir
     cd builddir

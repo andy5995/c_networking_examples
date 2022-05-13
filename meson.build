@@ -47,4 +47,15 @@ foreach file : example
   )
 endforeach
 
+dep_openssl = dependency('openssl')
+
+ssl_bins = [
+  'tcp_file_transfer_client_crypt',
+  'tcp_file_transfer_server_crypt'
+]
+
+foreach file : ssl_bins 
+  executable(file, file + '.c',
+  dependencies:dep_openssl, link_with:build_target, install:false)
+endforeach
 subdir ('test')

@@ -142,6 +142,28 @@ get_tcp_server_sockfd(void)
   return 0;
 }
 
+// https://beej.us/guide/bgnet/html/#sendall
+int tcp_sendall(const int sockfd, const char *buf, size_t *len)
+{
+    size_t total = 0;        // how many bytes we've sent
+    size_t bytesleft = *len; // how many we have left to send
+    ssize_t n;
+
+    while(total < *len) {
+        n = send(sockfd, buf+total, bytesleft, 0);
+        if (n == -1) {
+          perror("Send failed()");
+          break;
+        }
+        total += n;
+        bytesleft -= n;
+    }
+
+    *len = total; // return number actually sent here
+
+    return n==-1?-1:0; // return -1 on failure, 0 on success
+} 
+
 int
 get_udp_server_sockfd(void)
 {

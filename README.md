@@ -51,9 +51,12 @@ You can compile the c files individually:
 
 or use [meson](https://mesonbuild.com/) to build them all at once:
 
-    meson builddir
+    meson setup builddir
     cd builddir
-    ninja
+    meson compile
+
+To install meson on **macOS**, see the instructions at
+[meson->installing](https://mesonbuild.com/SimpleStart.html#installing-meson).
 
 ## See Also
 

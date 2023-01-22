@@ -25,3 +25,16 @@ jobs:
       run: |
         cd builddir
         meson test -v --setup=valgrind
+
+  macos:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v3
+    - run: brew install meson
+    - run: |
+       meson setup builddir
+       cd builddir
+       meson compile -v
+
+    - name: Test
+      run: meson test -v

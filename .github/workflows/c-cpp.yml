@@ -20,10 +20,10 @@ jobs:
         sudo apt install -y meson ninja-build
 
     - name: configure
-      run: meson builddir
+      run: meson builddir -Db_sanitize=address,undefined
     - name: ninja
       run: ninja -v -C builddir
     - name: test
       run: |
         cd builddir
-        meson test -v --setup=valgrind
+        meson test -v

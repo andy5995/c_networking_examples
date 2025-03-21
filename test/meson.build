@@ -1,12 +1,3 @@
-vg = find_program('valgrind', required : false)
-
-if vg.found()
-  add_test_setup(
-    'valgrind',
-    exe_wrapper : [join_paths(meson.current_source_dir(), 'valgrind_wrap.sh')]
-  )
-endif
-
 scripts = [
   'test_tcp_file_transfer_server.sh',
   'test_tcp_file_transfer_client.sh',

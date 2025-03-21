@@ -1,4 +1,7 @@
 name: C/C++ CI
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
 
 on:
   push:
@@ -8,15 +11,14 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
+
     - name: Install dependencies
       run: |
-        sudo apt-get install -y python3-pip python3-setuptools valgrind
-        sudo -H python3 -m pip install meson ninja
+        sudo apt install -y meson ninja-build
+
     - name: configure
       run: meson builddir
     - name: ninja

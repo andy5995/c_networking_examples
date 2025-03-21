@@ -22,6 +22,7 @@ foreach cflag : extra_flags
 endforeach
 
 example = [
+  'dual_stack_echo_server',
   'tcp_file_transfer_client',
   'tcp_file_transfer_server',
   'tcp_chat_client',

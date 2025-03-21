@@ -6,6 +6,15 @@ TCP and UDP examples of networking in C
 
 Website: https://github.com/andy5995/c_networking_examples
 
+## Dual Stack Echo Server
+
+The server listens for connections on both ipv4 and ipv6 addresses. To test,
+run the server, and in a different window, enter in either of the following
+(The `nc` program is required):
+
+    nc 127.0.0.1 12345
+    nc ::1 12345
+
 ## TCP File Transfer
 
 Transfer a plain text or binary file of any size from the client to

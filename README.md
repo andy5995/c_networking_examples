@@ -9,11 +9,10 @@ Website: https://github.com/andy5995/c_networking_examples
 ## Dual Stack Echo Server
 
 The server listens for connections on both ipv4 and ipv6 addresses. To test,
-run the server, and in a different window, enter in either of the following
-(The `nc` program is required):
+run the server, and in a different window, enter in either of the following:
 
-    nc 127.0.0.1 12345
-    nc ::1 12345
+    ./dual_stack_echo_client 127.0.0.1
+    ./dual_stack_echo client ::1
 
 ## TCP File Transfer
 

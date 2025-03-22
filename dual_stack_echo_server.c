@@ -45,6 +45,7 @@ main()
     return 1;
   }
 
+  int optval = 0;
   // Create and bind socket
   for (p = res; p != NULL; p = p->ai_next)
   {
@@ -52,8 +53,6 @@ main()
     if (server_fd == -1)
       continue;
 
-    // Allow both IPv4 and IPv6
-    int optval = 0;
     setsockopt(server_fd, IPPROTO_IPV6, IPV6_V6ONLY, &optval, sizeof(optval));
 
     if (bind(server_fd, p->ai_addr, p->ai_addrlen) == 0)

@@ -94,7 +94,8 @@ main(int argc, char *argv[])
   struct sockaddr_storage remoteaddr;   // Client address
   socklen_t addrlen;
 
-  if (get_tcp_server_sockfd() < 0)
+  int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+  if (get_tcp_server_sockfd(sockfd) < 0)
   {
     fputs("Error\n", stderr);
     return -1;

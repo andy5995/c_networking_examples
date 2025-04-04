@@ -186,15 +186,16 @@ recv_file(void)
 static int
 accept_connection(void)
 {
-  get_tcp_server_sockfd();
+  int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+  get_tcp_server_sockfd(sockfd);
 
   struct sockaddr_in cli;
   socklen_t len = sizeof(cli);
 
   // Accept the data packet from client and verification
-  conn_inf.connfd = accept(conn_inf.sockfd, (struct sockaddr *) &cli, &len);
+  conn_inf.connfd = accept(sockfd, (struct sockaddr *) &cli, &len);
   // sockfd only needed if more connections are desired
-  if (close(conn_inf.sockfd))
+  if (close(sockfd))
     perror("close() failed");
 
   if (conn_inf.connfd < 0)

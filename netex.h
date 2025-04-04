@@ -11,7 +11,7 @@ extern conn_info conn_inf;
 
 int get_tcp_client_sockfd(void);
 
-int get_tcp_server_sockfd(void);
+int get_tcp_server_sockfd(int sockfd);
 
 int get_udp_server_sockfd(void);
 

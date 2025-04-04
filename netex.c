@@ -101,12 +101,11 @@ get_tcp_client_sockfd(void)
 }
 
 int
-get_tcp_server_sockfd(void)
+get_tcp_server_sockfd(int sockfd)
 {
   struct sockaddr_in servaddr;
 
-  conn_inf.sockfd = socket(AF_INET, SOCK_STREAM, 0);
-  if (conn_inf.sockfd == -1)
+  if (sockfd == -1)
   {
     perror("socket");
     return -1;
@@ -121,20 +120,20 @@ get_tcp_server_sockfd(void)
 
   // Binding newly created socket to given IP and verification
   if ((bind
-       (conn_inf.sockfd, (struct sockaddr *) &servaddr,
+       (sockfd, (struct sockaddr *) &servaddr,
         sizeof(servaddr))) != 0)
   {
     perror("bind");
-    close(conn_inf.sockfd);
+    close(sockfd);
     return -1;
   }
 
   printf("Socket successfully binded..\n");
   // Now server is ready to listen and verification
-  if ((listen(conn_inf.sockfd, 5)) != 0)
+  if ((listen(sockfd, 5)) != 0)
   {
     perror("listen");
-    close(conn_inf.sockfd);
+    close(sockfd);
     return -1;
   }
   else

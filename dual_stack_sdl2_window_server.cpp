@@ -1,6 +1,7 @@
 #include <iostream>
 #include <sstream>              // Include for std::ostringstream
 #include <cstring>
+#include <thread>
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <sys/types.h>
@@ -19,6 +20,7 @@
 void
 draw_filled_circle(SDL_Renderer *renderer, int x, int y, int r)
 {
+  SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
   for (int w = 0; w < r * 2; w++)
   {
     for (int h = 0; h < r * 2; h++)
@@ -30,6 +32,18 @@ draw_filled_circle(SDL_Renderer *renderer, int x, int y, int r)
         SDL_RenderDrawPoint(renderer, x + dx, y + dy);
       }
     }
+  }
+  return;
+}
+
+void accept_thread(int server_fd, int *client_fd) {
+  struct sockaddr_storage client_addr;
+  socklen_t addr_size = sizeof(client_addr);
+  *client_fd = accept(server_fd, (struct sockaddr *) &client_addr, &addr_size);
+  if (*client_fd == -1)
+  {
+    perror("Client connection failed");
+    return;
   }
 }
 
@@ -53,13 +67,18 @@ setup_server_socket()
   }
 
   int optval = 0;
+  int opt = 1;
   for (p = res; p != NULL; p = p->ai_next)
   {
     server_fd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
     if (server_fd == -1)
       continue;
 
-    setsockopt(server_fd, IPPROTO_IPV6, IPV6_V6ONLY, &optval, sizeof(optval));
+    if (setsockopt(server_fd, IPPROTO_IPV6, IPV6_V6ONLY, &optval, sizeof(optval)) < 0)
+      perror("setsockopt IPV6_V6ONLY");
+
+    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
+      perror("setsockopt SO_REUSEADDR");
 
     if (bind(server_fd, p->ai_addr, p->ai_addrlen) == 0)
       break;
@@ -104,19 +123,21 @@ main()
 
   int circle_x = WINDOW_WIDTH / 2, circle_y = WINDOW_HEIGHT / 2;
   // Draw red circle
-  SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
   draw_filled_circle(renderer, circle_x, circle_y, CIRCLE_RADIUS);
   SDL_RenderPresent(renderer);
 
-  int client_fd;
-  struct sockaddr_storage client_addr;
-  socklen_t addr_size = sizeof(client_addr);
-  client_fd = accept(server_fd, (struct sockaddr *) &client_addr, &addr_size);
-  if (client_fd == -1)
-  {
-    perror("Client connection failed");
-    return 1;
-  }
+  //int client_fd;
+  //struct sockaddr_storage client_addr;
+  //socklen_t addr_size = sizeof(client_addr);
+  //client_fd = accept(server_fd, (struct sockaddr *) &client_addr, &addr_size);
+  //if (client_fd == -1)
+  //{
+    //perror("Client connection failed");
+    //return 1;
+  //}
+
+  int client_fd = -1;
+  std::thread net_thread(accept_thread, server_fd, &client_fd);
 
   bool running = true;
   while (running)
@@ -133,12 +154,14 @@ main()
         circle_x = event.button.x;
         circle_y = event.button.y;
 
-        // Use C++ string stream instead of snprintf
-        std::ostringstream oss;
-        oss << circle_x << " " << circle_y << "\n";
-        std::string message = oss.str();
+        if (client_fd != -1)
+        {
+          std::ostringstream oss;
+          oss << circle_x << " " << circle_y << "\n";
+          std::string message = oss.str();
 
-        send(client_fd, message.c_str(), message.size(), 0);
+          send(client_fd, message.c_str(), message.size(), 0);
+        }
       }
 
     }
@@ -148,14 +171,20 @@ main()
     SDL_RenderClear(renderer);
 
     // Draw red circle
-    SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
     draw_filled_circle(renderer, circle_x, circle_y, CIRCLE_RADIUS);
 
     SDL_RenderPresent(renderer);
     SDL_Delay(16);              // Small delay to prevent high CPU usage
   }
 
-  close(client_fd);
+  if (net_thread.joinable()) {
+      if (client_fd == -1) {
+          // Optionally shut down the server_fd so accept() returns
+          shutdown(server_fd, SHUT_RDWR);
+      }
+      net_thread.join();
+  }
+
   close(server_fd);
   SDL_DestroyRenderer(renderer);
   SDL_DestroyWindow(window);

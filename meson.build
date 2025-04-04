@@ -39,6 +39,11 @@ cpp_example = [
   'dual_stack_echo_server_cpp_base',
   ]
 
+sdl_example = [
+  'dual_stack_sdl2_window_server',
+  'dual_stack_sdl2_window_client',
+  ]
+
 build_target = library(
   'netex',
   'netex.c',
@@ -61,6 +66,16 @@ foreach file : cpp_example
     file,
     file + '.cpp',
     link_with: build_target,
+    install: false
+  )
+endforeach
+
+foreach file : sdl_example
+  executable(
+    file,
+    file + '.cpp',
+    link_with: [build_target],
+    dependencies: [dependency('sdl2')],
     install: false
   )
 endforeach

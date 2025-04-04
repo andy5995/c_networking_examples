@@ -17,7 +17,10 @@ jobs:
 
     - name: Install dependencies
       run: |
-        sudo apt install -y meson ninja-build
+        sudo apt install -y \
+          libsdl2-dev \
+          meson \
+          ninja-build
 
     - name: configure
       run: meson builddir -Db_sanitize=address,undefined

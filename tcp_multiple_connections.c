@@ -63,7 +63,7 @@ add_to_pfds(struct pollfd *pfds[], int newfd, int *fd_count, int *fd_size)
     *fd_size *= 2;              // Double it
 
     *pfds = realloc(*pfds, sizeof(**pfds) * (*fd_size));
-    if (pfds == NULL)
+    if (*pfds == NULL)
     {
       perror("malloc");
       exit(errno);

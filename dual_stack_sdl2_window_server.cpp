@@ -17,8 +17,8 @@ void accept_thread(int server_fd, int *client_fd) {
   *client_fd = accept(server_fd, (struct sockaddr *)&client_addr, &addr_size);
   if (*client_fd == -1) {
     perror("Client connection failed");
-    return;
   }
+  return;
 }
 
 // Function to set up the server socket
@@ -91,22 +91,26 @@ int main() {
   SDL_RenderPresent(renderer);
 
   int client_fd = -1;
+  bool first_packet_sent = false;
   std::thread net_thread(accept_thread, server_fd, &client_fd);
 
   int prev_circle_x = circle_x, prev_circle_y = circle_y;
 
   bool running = true;
   while (running) {
-    if (client_fd != -1 && (prev_circle_x != circle_x ||
+    if (client_fd != -1 && (!first_packet_sent || prev_circle_x != circle_x ||
         prev_circle_y != circle_y)) {
       std::ostringstream oss;
       oss << circle_x << " " << circle_y << "\n";
       std::string message = oss.str();
 
       send(client_fd, message.c_str(), message.size(), 0);
+      if (!first_packet_sent)
+        first_packet_sent = true;
       prev_circle_x = circle_x;
       prev_circle_y = circle_y;
     }
+
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
       if (event.type == SDL_QUIT) {

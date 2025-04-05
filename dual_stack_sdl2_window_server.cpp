@@ -7,34 +7,9 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
-#include <SDL2/SDL.h>
 
-#define PORT "12345"
-#define BUFFER_SIZE 64
-#define WINDOW_WIDTH 720
-#define WINDOW_HEIGHT 480
-#define CIRCLE_RADIUS 20
-#define BACKLOG 10
-
-// Function to draw a filled circle
-void
-draw_filled_circle(SDL_Renderer *renderer, int x, int y, int r)
-{
-  SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
-  for (int w = 0; w < r * 2; w++)
-  {
-    for (int h = 0; h < r * 2; h++)
-    {
-      int dx = r - w;
-      int dy = r - h;
-      if ((dx * dx + dy * dy) <= (r * r))
-      {
-        SDL_RenderDrawPoint(renderer, x + dx, y + dy);
-      }
-    }
-  }
-  return;
-}
+#include "dual_stack_sdl_window.h"
+#include "graphics.h"
 
 void accept_thread(int server_fd, int *client_fd) {
   struct sockaddr_storage client_addr;
@@ -122,26 +97,28 @@ main()
   SDL_RenderClear(renderer);
 
   int circle_x = WINDOW_WIDTH / 2, circle_y = WINDOW_HEIGHT / 2;
-  // Draw red circle
+
   draw_filled_circle(renderer, circle_x, circle_y, CIRCLE_RADIUS);
   SDL_RenderPresent(renderer);
-
-  //int client_fd;
-  //struct sockaddr_storage client_addr;
-  //socklen_t addr_size = sizeof(client_addr);
-  //client_fd = accept(server_fd, (struct sockaddr *) &client_addr, &addr_size);
-  //if (client_fd == -1)
-  //{
-    //perror("Client connection failed");
-    //return 1;
-  //}
 
   int client_fd = -1;
   std::thread net_thread(accept_thread, server_fd, &client_fd);
 
+  int prev_circle_x = circle_x, prev_circle_y = circle_y;
+
   bool running = true;
   while (running)
   {
+    if (client_fd != -1 && prev_circle_x != circle_x && prev_circle_y != circle_y)
+    {
+      std::ostringstream oss;
+      oss << circle_x << " " << circle_y << "\n";
+      std::string message = oss.str();
+
+      send(client_fd, message.c_str(), message.size(), 0);
+      prev_circle_x = circle_x;
+      prev_circle_y = circle_y;
+    }
     SDL_Event event;
     while (SDL_PollEvent(&event))
     {
@@ -153,24 +130,13 @@ main()
       {
         circle_x = event.button.x;
         circle_y = event.button.y;
-
-        if (client_fd != -1)
-        {
-          std::ostringstream oss;
-          oss << circle_x << " " << circle_y << "\n";
-          std::string message = oss.str();
-
-          send(client_fd, message.c_str(), message.size(), 0);
-        }
       }
-
     }
 
     // Draw white background
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
     SDL_RenderClear(renderer);
 
-    // Draw red circle
     draw_filled_circle(renderer, circle_x, circle_y, CIRCLE_RADIUS);
 
     SDL_RenderPresent(renderer);
@@ -179,7 +145,6 @@ main()
 
   if (net_thread.joinable()) {
       if (client_fd == -1) {
-          // Optionally shut down the server_fd so accept() returns
           shutdown(server_fd, SHUT_RDWR);
       }
       net_thread.join();

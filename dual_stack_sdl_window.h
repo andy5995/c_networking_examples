@@ -1,0 +1,6 @@
+#define PORT "61357"
+#define BUFFER_SIZE 64
+#define WINDOW_WIDTH 720
+#define WINDOW_HEIGHT 480
+#define CIRCLE_RADIUS 20
+#define BACKLOG 10

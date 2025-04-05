@@ -51,6 +51,12 @@ build_target = library(
   soversion : '0',
   install: false)
 
+_graphics = static_library(
+  'graphics',
+  'graphics.cpp',
+  install: false
+  )
+
 foreach file : c_example
   executable(
     file,
@@ -73,8 +79,8 @@ endforeach
 foreach file : sdl_example
   executable(
     file,
-    file + '.cpp',
-    link_with: [build_target],
+    [file + '.cpp'],
+    link_with: [_graphics, build_target],
     dependencies: [dependency('sdl2')],
     install: false
   )

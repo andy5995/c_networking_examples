@@ -6,31 +6,9 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
-#include <SDL2/SDL.h>
 
-#define PORT "12345"
-#define BUFFER_SIZE 64
-#define WINDOW_WIDTH 720
-#define WINDOW_HEIGHT 480
-#define CIRCLE_RADIUS 20
-
-// Function to draw a filled circle
-void
-draw_filled_circle(SDL_Renderer *renderer, int x, int y, int r)
-{
-  for (int w = 0; w < r * 2; w++)
-  {
-    for (int h = 0; h < r * 2; h++)
-    {
-      int dx = r - w;
-      int dy = r - h;
-      if ((dx * dx + dy * dy) <= (r * r))
-      {
-        SDL_RenderDrawPoint(renderer, x + dx, y + dy);
-      }
-    }
-  }
-}
+#include "dual_stack_sdl_window.h"
+#include "graphics.h"
 
 int
 connect_to_server(const char *server_addr)
@@ -130,7 +108,6 @@ main(int argc, char *argv[])
       }
     }
 
-
     // Draw white background
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
     SDL_RenderClear(renderer);
@@ -138,7 +115,6 @@ main(int argc, char *argv[])
     // Only draw the circle if we received a valid update from the server
     if (received_first_update)
     {
-      SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
       draw_filled_circle(renderer, x, y, CIRCLE_RADIUS);
     }
 

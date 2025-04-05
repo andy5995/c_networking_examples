@@ -1,8 +1,10 @@
 #include <arpa/inet.h>
+#include <atomic>
 #include <cstring>
 #include <iostream>
 #include <netdb.h>
 #include <sstream> // Include for std::istringstream
+#include <thread>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -41,6 +43,25 @@ int connect_to_server(const char *server_addr) {
   return client_fd;
 }
 
+void recv_thread(int client_fd, std::atomic<bool> *received_first_update, std::atomic<int> *x, std::atomic<int> *y) {
+  char buffer[BUFFER_SIZE];
+  while (true) {
+    ssize_t bytes_received = recv(client_fd, buffer, BUFFER_SIZE - 1, 0);
+    if (bytes_received <= 0)
+      break; // connection closed or error
+
+    buffer[bytes_received] = '\0';
+    std::istringstream iss(buffer);
+    int new_x, new_y;
+    if (iss >> new_x >> new_y) {
+      *x = new_x;
+      *y = new_y;
+      *received_first_update = true;
+    }
+  }
+}
+
+
 int main(int argc, char *argv[]) {
   if (argc != 2) {
     std::cerr << "Usage: " << argv[0] << " <server_address>\n";
@@ -63,30 +84,18 @@ int main(int argc, char *argv[]) {
   SDL_RenderClear(renderer);
   SDL_RenderPresent(renderer);
 
-  int x = -1, y = -1; // Invalid initial position
-  bool received_first_update = false;
+  std::atomic<int> x = 0, y = 0;
+  std::atomic<bool> received_first_update = false;
+  x = -1, y = -1; // Invalid initial position
+
   bool running = true;
+  std::thread receiver(recv_thread, client_fd, &received_first_update, &x, &y);
 
   while (running) {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
       if (event.type == SDL_QUIT) {
         running = false;
-      }
-    }
-
-    // Receive coordinates from the server
-    char buffer[BUFFER_SIZE] = {0};
-    ssize_t bytes_received = recv(client_fd, buffer, BUFFER_SIZE - 1, 0);
-    if (bytes_received > 0) {
-      buffer[bytes_received] = '\0';
-
-      std::istringstream iss(buffer);
-      if (iss >> x >> y) // Safely extract values
-      {
-        received_first_update = true; // Mark that we've received valid data
-      } else {
-        std::cerr << "Failed to parse server message: " << buffer << std::endl;
       }
     }
 
@@ -103,7 +112,12 @@ int main(int argc, char *argv[]) {
     SDL_Delay(16);
   }
 
+  if (receiver.joinable()) {
+    shutdown(client_fd, SHUT_RDWR);
+    receiver.join();
+  }
   close(client_fd);
+
   SDL_DestroyRenderer(renderer);
   SDL_DestroyWindow(window);
   SDL_Quit();

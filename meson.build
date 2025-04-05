@@ -3,14 +3,13 @@ project(
   ['c', 'cpp'],
   version: '0.1.0.555',
   meson_version : '>= 0.56.0',
-  default_options: ['warning_level=3']
+  default_options: ['warning_level=3', 'b_sanitize=address,undefined']
   )
 
 cc = meson.get_compiler('c')
 cxx = meson.get_compiler('cpp')
 extra_flags = [
   '-fno-common',
-  '-fanalyzer',
   '-Wformat-security',
   '-Wformat-overflow=2',
   '-Wshadow',
@@ -19,6 +18,9 @@ extra_flags = [
 foreach cflag : extra_flags
   if cc.has_argument(cflag)
     add_project_arguments(cflag, language: 'c')
+  endif
+  if cxx.has_argument(cflag)
+    add_project_arguments(cflag, language: 'cpp')
   endif
 endforeach
 

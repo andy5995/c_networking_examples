@@ -97,8 +97,8 @@ int main() {
 
   bool running = true;
   while (running) {
-    if (client_fd != -1 && prev_circle_x != circle_x &&
-        prev_circle_y != circle_y) {
+    if (client_fd != -1 && (prev_circle_x != circle_x ||
+        prev_circle_y != circle_y)) {
       std::ostringstream oss;
       oss << circle_x << " " << circle_y << "\n";
       std::string message = oss.str();

@@ -4,9 +4,9 @@
 #include <iostream>
 #include <netdb.h>
 #include <sstream> // Include for std::istringstream
-#include <thread>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <thread>
 #include <unistd.h>
 
 #include "dual_stack_sdl_window.h"
@@ -43,7 +43,8 @@ int connect_to_server(const char *server_addr) {
   return client_fd;
 }
 
-void recv_thread(int client_fd, std::atomic<bool> *received_first_update, std::atomic<int> *x, std::atomic<int> *y) {
+void recv_thread(int client_fd, std::atomic<bool> *received_first_update,
+                 std::atomic<int> *x, std::atomic<int> *y) {
   char buffer[BUFFER_SIZE];
   while (true) {
     ssize_t bytes_received = recv(client_fd, buffer, BUFFER_SIZE - 1, 0);
@@ -60,7 +61,6 @@ void recv_thread(int client_fd, std::atomic<bool> *received_first_update, std::a
     }
   }
 }
-
 
 int main(int argc, char *argv[]) {
   if (argc != 2) {
@@ -113,7 +113,8 @@ int main(int argc, char *argv[]) {
   }
 
   if (receiver.joinable()) {
-    shutdown(client_fd, SHUT_RDWR);
+    if (shutdown(client_fd, SHUT_RDWR) != 0)
+      perror("shutdown:");
     receiver.join();
   }
   close(client_fd);

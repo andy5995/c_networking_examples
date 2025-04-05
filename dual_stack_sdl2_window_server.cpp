@@ -99,7 +99,7 @@ int main() {
   bool running = true;
   while (running) {
     if (client_fd != -1 && (!first_packet_sent || prev_circle_x != circle_x ||
-        prev_circle_y != circle_y)) {
+                            prev_circle_y != circle_y)) {
       std::ostringstream oss;
       oss << circle_x << " " << circle_y << "\n";
       std::string message = oss.str();
@@ -134,7 +134,8 @@ int main() {
 
   if (net_thread.joinable()) {
     if (client_fd == -1) {
-      shutdown(server_fd, SHUT_RDWR);
+      if (shutdown(server_fd, SHUT_RDWR) != 0)
+        perror("shutdown:");
     }
     net_thread.join();
   }

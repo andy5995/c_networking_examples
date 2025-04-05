@@ -6,62 +6,54 @@
  *
  */
 
-#include <iostream>
-#include <string>
-#include <cstring>
-#include <cstdlib>
-#include <unistd.h>
 #include <arpa/inet.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+#include <cstdlib>
+#include <cstring>
+#include <iostream>
 #include <netdb.h>
+#include <string>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <unistd.h>
 
-#define PORT "12345"            // Must match the server's port
+#define PORT "12345" // Must match the server's port
 
-int
-main(int argc, char *argv[])
-{
-  if (argc != 2)
-  {
+int main(int argc, char *argv[]) {
+  if (argc != 2) {
     std::cerr << "You must provide the server address." << std::endl;
     return 1;
   }
 
   std::string server_addr = argv[1];
   int client_fd;
-  struct addrinfo hints
-  {
-  }, *res, *p;
+  struct addrinfo hints{}, *res, *p;
 
   // Set up hints for getaddrinfo()
   std::memset(&hints, 0, sizeof(hints));
-  hints.ai_family = AF_UNSPEC;  // Allow both IPv4 and IPv6
+  hints.ai_family = AF_UNSPEC; // Allow both IPv4 and IPv6
   hints.ai_socktype = SOCK_STREAM;
 
   // Get address info
-  if (getaddrinfo(server_addr.c_str(), PORT, &hints, &res) != 0)
-  {
+  if (getaddrinfo(server_addr.c_str(), PORT, &hints, &res) != 0) {
     perror("getaddrinfo");
     return 1;
   }
 
   // Try to connect to one of the results
-  for (p = res; p != nullptr; p = p->ai_next)
-  {
+  for (p = res; p != nullptr; p = p->ai_next) {
     client_fd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
     if (client_fd == -1)
       continue;
 
     if (connect(client_fd, p->ai_addr, p->ai_addrlen) == 0)
-      break;                    // Connected successfully
+      break; // Connected successfully
 
     close(client_fd);
   }
 
   freeaddrinfo(res);
 
-  if (!p)
-  {
+  if (!p) {
     perror("Failed to connect");
     return 1;
   }
@@ -70,11 +62,9 @@ main(int argc, char *argv[])
 
   ssize_t bytes_received = recv(client_fd, &buffer[0], buffer.size() - 1, 0);
   if (bytes_received > 0) {
-      buffer.resize(bytes_received);  // Resize to actual data length
-      std::cout << "Server response: " << buffer << std::endl;
-  }
-  else
-  {
+    buffer.resize(bytes_received); // Resize to actual data length
+    std::cout << "Server response: " << buffer << std::endl;
+  } else {
     perror("recv");
   }
 

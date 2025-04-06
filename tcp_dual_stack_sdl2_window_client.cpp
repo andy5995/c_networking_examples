@@ -1,5 +1,4 @@
 #include <arpa/inet.h>
-#include <atomic>
 #include <cstring>
 #include <iostream>
 #include <netdb.h>
@@ -43,8 +42,8 @@ int connect_to_server(const char *server_addr) {
   return client_fd;
 }
 
-void recv_thread(int client_fd, std::atomic<bool> *received_first_update,
-                 std::atomic<int> *x, std::atomic<int> *y) {
+void recv_thread(int client_fd, bool *received_first_update,
+                 int *x, int *y) {
   char buffer[BUFFER_SIZE];
   while (true) {
     ssize_t bytes_received = recv(client_fd, buffer, BUFFER_SIZE - 1, 0);
@@ -84,9 +83,8 @@ int main(int argc, char *argv[]) {
   SDL_RenderClear(renderer);
   SDL_RenderPresent(renderer);
 
-  std::atomic<int> x = 0, y = 0;
-  std::atomic<bool> received_first_update = false;
-  x = -1, y = -1; // Invalid initial position
+  bool received_first_update = false;
+  int x = -1, y = -1; // Invalid initial position
 
   bool running = true;
   std::thread receiver(recv_thread, client_fd, &received_first_update, &x, &y);

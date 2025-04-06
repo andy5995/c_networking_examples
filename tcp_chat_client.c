@@ -44,14 +44,14 @@ void func(int sockfd) {
   char buff[BUFSIZ];
   int n;
   for (;;) {
-    bzero(buff, sizeof(buff));
+    memset(buff, 0, sizeof buff);
     fputs("Enter the string : ", stdout);
     n = 0;
     while ((buff[n++] = getchar()) != '\n')
       ;
-    write(sockfd, buff, sizeof(buff));
-    bzero(buff, sizeof(buff));
-    read(sockfd, buff, sizeof(buff));
+    write(sockfd, buff, sizeof buff);
+    memset(buff, 0, sizeof buff);
+    read(sockfd, buff, sizeof buff);
     printf("From Server : %s", buff);
     if ((strncmp(buff, "exit", 4)) == 0) {
       printf("Client Exit...\n");

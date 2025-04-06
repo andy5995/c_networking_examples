@@ -54,7 +54,7 @@ static int recv_file(void) {
   FILE *fp = NULL;
   _Bool f_exists = 0;
   size_t n_bytes_total = 0;
-  bzero(buff, sizeof buff);
+  memset(buff, 0, sizeof buff);
 
   struct pollfd pfds[1]; // More if you want to monitor more
   pfds[0].fd = conn_inf.connfd;

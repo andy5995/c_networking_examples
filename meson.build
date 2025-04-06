@@ -3,7 +3,8 @@ project(
   ['c', 'cpp'],
   version: '0.1.0.555',
   meson_version : '>= 0.56.0',
-  default_options: ['warning_level=3', 'b_sanitize=address,undefined']
+  default_options: ['warning_level=3', 'b_sanitize=address,undefined', 'c_std=c99',
+        'cpp_std=c++11'],
   )
 
 cc = meson.get_compiler('c')
@@ -13,6 +14,7 @@ extra_flags = [
   '-Wformat-security',
   '-Wformat-overflow=2',
   '-Wshadow',
+  '-D_DEFAULT_SOURCE',
   ]
 
 foreach cflag : extra_flags

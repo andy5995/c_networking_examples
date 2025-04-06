@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
+#define _POSIX_C_SOURCE 200112L
 #include <unistd.h>
 
 #include "netex.h"
@@ -93,7 +94,8 @@ int get_tcp_server_sockfd(void) {
     return -1;
   } else
     puts("Socket successfully created");
-  bzero(&servaddr, sizeof(servaddr));
+
+  memset(&servaddr, 0, sizeof servaddr);
 
   servaddr.sin_family = AF_UNSPEC;
   servaddr.sin_addr.s_addr = htonl(INADDR_ANY);

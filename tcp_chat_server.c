@@ -43,13 +43,13 @@ void func() {
   int n;
   // infinite loop for chat
   for (;;) {
-    bzero(buff, BUFSIZ);
+    memset(buff, 0, BUFSIZ);
 
     // read the message from client and copy it in buffer
     read(conn_inf.connfd, buff, sizeof(buff));
     // print buffer which contains the client contents
     printf("From client: %s\t To client : ", buff);
-    bzero(buff, BUFSIZ);
+    memset(buff, 0, BUFSIZ);
     n = 0;
     // copy server message in the buffer
     while ((buff[n++] = getchar()) != '\n')

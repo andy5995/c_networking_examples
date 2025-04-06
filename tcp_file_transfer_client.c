@@ -79,7 +79,7 @@ int func(int sockfd, const char *file) {
   } while (feof(fp) == 0);
 
   putchar('\n');
-  bzero(buff, sizeof(buff));
+  memset(buff, 0, sizeof buff);
   fputs("Server replied: ", stdout);
   int n_bytes_recvd;
   while ((n_bytes_recvd = recv(sockfd, buff, sizeof(buff), 0)) != 0) {

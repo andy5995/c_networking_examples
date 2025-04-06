@@ -36,11 +36,6 @@ c_example = [
   'udp_echo_server'
   ]
 
-cpp_example = [
-  'dual_stack_echo_client_cpp_base',
-  'dual_stack_echo_server_cpp_base',
-  ]
-
 sdl_example = [
   'tcp_dual_stack_sdl2_window_server',
   'tcp_dual_stack_sdl2_window_client',
@@ -57,16 +52,6 @@ foreach file : c_example
   executable(
     file,
     file + '.c',
-    link_with: build_target,
-    install: false
-  )
-endforeach
-
-
-foreach file : cpp_example
-  executable(
-    file,
-    file + '.cpp',
     link_with: build_target,
     install: false
   )

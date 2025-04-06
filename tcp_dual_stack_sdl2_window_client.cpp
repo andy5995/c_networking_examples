@@ -9,7 +9,8 @@
 #include <thread>
 #include <unistd.h>
 
-#include "dual_stack_sdl_window.h"
+#include "graphics.h"
+#include "netex.h"
 
 int connect_to_server(const char *server_addr) {
   int client_fd;

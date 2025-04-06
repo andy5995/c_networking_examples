@@ -8,7 +8,8 @@
 #include <thread>
 #include <unistd.h>
 
-#include "dual_stack_sdl_window.h"
+#include "graphics.h"
+#include "netex.h"
 
 void accept_thread(int server_fd, int *client_fd) {
   struct sockaddr_storage client_addr;
@@ -20,55 +21,8 @@ void accept_thread(int server_fd, int *client_fd) {
   return;
 }
 
-// Function to set up the server socket
-int setup_server_socket() {
-  int server_fd;
-  struct addrinfo hints{}, *res, *p;
-
-  hints.ai_family = AF_INET6; // IPv6, supports v4 via v6-mapped addresses
-  hints.ai_socktype = SOCK_STREAM;
-  hints.ai_flags = AI_PASSIVE; // Auto-fill IP
-
-  if (getaddrinfo(NULL, PORT, &hints, &res) != 0) {
-    perror("getaddrinfo");
-    return -1;
-  }
-
-  int optval = 0;
-  int opt = 1;
-  for (p = res; p != NULL; p = p->ai_next) {
-    server_fd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
-    if (server_fd == -1)
-      continue;
-
-    if (setsockopt(server_fd, IPPROTO_IPV6, IPV6_V6ONLY, &optval,
-                   sizeof(optval)) < 0)
-      perror("setsockopt IPV6_V6ONLY");
-
-    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
-      perror("setsockopt SO_REUSEADDR");
-
-    if (bind(server_fd, p->ai_addr, p->ai_addrlen) == 0)
-      break;
-    close(server_fd);
-  }
-
-  freeaddrinfo(res);
-  if (!p) {
-    perror("Failed to bind");
-    return -1;
-  }
-
-  if (listen(server_fd, BACKLOG) == -1) {
-    perror("listen");
-    return -1;
-  }
-
-  return server_fd;
-}
-
 int main() {
-  int server_fd = setup_server_socket();
+  int server_fd = setup_tcp_dual_stack_server();
   if (server_fd == -1)
     return 1;
 

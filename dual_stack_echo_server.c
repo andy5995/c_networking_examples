@@ -15,8 +15,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#define PORT "12345" // Port to listen on
-#define BACKLOG 10   // Number of pending connections queue
+#include "netex.h"
+
 #define MESSAGE "hello world\n"
 
 void handle_client(int client_fd) {
@@ -25,47 +25,8 @@ void handle_client(int client_fd) {
 }
 
 int main() {
-  int server_fd;
-  struct addrinfo hints, *res, *p;
 
-  // Set up hints for dual-stack
-  memset(&hints, 0, sizeof(hints));
-  hints.ai_family =
-      AF_INET6; // Use IPv6, but allow IPv4 via v6-mapped addresses
-  hints.ai_socktype = SOCK_STREAM; // TCP
-  hints.ai_flags = AI_PASSIVE;     // Auto-fill IP
-
-  // Get address info
-  if (getaddrinfo(NULL, PORT, &hints, &res) != 0) {
-    perror("getaddrinfo");
-    return 1;
-  }
-
-  int optval = 0;
-  // Create and bind socket
-  for (p = res; p != NULL; p = p->ai_next) {
-    server_fd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
-    if (server_fd == -1)
-      continue;
-
-    setsockopt(server_fd, IPPROTO_IPV6, IPV6_V6ONLY, &optval, sizeof(optval));
-
-    if (bind(server_fd, p->ai_addr, p->ai_addrlen) == 0)
-      break; // Success
-    close(server_fd);
-  }
-
-  freeaddrinfo(res);
-  if (!p) {
-    perror("Failed to bind");
-    return 1;
-  }
-
-  // Start listening
-  if (listen(server_fd, BACKLOG) == -1) {
-    perror("listen");
-    return 1;
-  }
+  int server_fd = setup_tcp_dual_stack_server();
 
   printf("Server listening on port %s...\n", PORT);
 

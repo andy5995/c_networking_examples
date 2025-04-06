@@ -15,7 +15,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#define PORT "12345" // Must match the server's port
+#include "netex.h"
 
 int main(int argc, char *argv[]) {
   char *server_addr = NULL;

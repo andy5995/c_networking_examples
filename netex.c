@@ -186,3 +186,56 @@ void parse_server_opts(const int argc, char *argv[]) {
   }
   return;
 }
+
+int setup_tcp_dual_stack_server(void) {
+  int server_fd;
+  struct addrinfo hints, *res, *p;
+
+  // Set up hints for dual-stack
+  memset(&hints, 0, sizeof(hints));
+  // Use IPv6, but allow IPv4 via v6-mapped addresses
+  hints.ai_family = AF_INET6;
+  hints.ai_socktype = SOCK_STREAM;
+  hints.ai_flags = AI_PASSIVE; // Auto-fill IP
+
+  // Get address info
+  if (getaddrinfo(NULL, PORT, &hints, &res) != 0) {
+    perror("getaddrinfo");
+    return 1;
+  }
+
+  int optval = 0, opt = 1;
+  // Create and bind socket
+  for (p = res; p != NULL; p = p->ai_next) {
+    server_fd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
+    if (server_fd == -1)
+      continue;
+
+    if (setsockopt(server_fd, IPPROTO_IPV6, IPV6_V6ONLY, &optval,
+                   sizeof(optval)) < 0)
+      perror("setsockopt IPV6_V6ONLY");
+
+    // When starting the server immediately after it was killed,
+    // prevent the error "Address already in use" when running
+    // See https://linux.die.net/man/3/setsockopt for more information.
+    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
+      perror("setsockopt SO_REUSEADDR");
+
+    if (bind(server_fd, p->ai_addr, p->ai_addrlen) == 0)
+      break; // Success
+    close(server_fd);
+  }
+
+  freeaddrinfo(res);
+  if (!p) {
+    perror("Failed to bind");
+    return 1;
+  }
+
+  // Start listening
+  if (listen(server_fd, BACKLOG) == -1) {
+    perror("listen");
+    return 1;
+  }
+  return server_fd;
+}

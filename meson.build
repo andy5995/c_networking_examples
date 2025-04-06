@@ -42,8 +42,8 @@ cpp_example = [
   ]
 
 sdl_example = [
-  'dual_stack_sdl2_window_server',
-  'dual_stack_sdl2_window_client',
+  'tcp_dual_stack_sdl2_window_server',
+  'tcp_dual_stack_sdl2_window_client',
   ]
 
 build_target = library(

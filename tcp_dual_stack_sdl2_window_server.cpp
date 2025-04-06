@@ -9,7 +9,6 @@
 #include <unistd.h>
 
 #include "dual_stack_sdl_window.h"
-#include "graphics.h"
 
 void accept_thread(int server_fd, int *client_fd) {
   struct sockaddr_storage client_addr;

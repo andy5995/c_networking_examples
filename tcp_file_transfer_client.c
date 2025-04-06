@@ -27,7 +27,7 @@
 */
 
 #include <errno.h>
-#include <libgen.h>             // basename()
+#include <libgen.h> // basename()
 #include <limits.h>
 #include <poll.h>
 #include <stdio.h>
@@ -38,18 +38,14 @@
 
 #include "netex.h"
 
-int
-func(int sockfd, const char *file)
-{
+int func(int sockfd, const char *file) {
   FILE *fp = fopen(file, "rb");
-  if (fp == NULL)
-  {
+  if (fp == NULL) {
     strerror(errno);
     exit(errno);
   }
   int r = fseek(fp, 0, SEEK_END);
-  if (r != 0)
-  {
+  if (r != 0) {
     strerror(errno);
     exit(errno);
   }
@@ -59,7 +55,7 @@ func(int sockfd, const char *file)
 
   // basename() may modify the contents of 'file', so create a copy
   char file_orig[PATH_MAX];
-  if ((size_t) snprintf(file_orig, sizeof file_orig, "%s", file) >=
+  if ((size_t)snprintf(file_orig, sizeof file_orig, "%s", file) >=
       sizeof file_orig)
     fputs("filename truncated", stderr);
 
@@ -69,12 +65,10 @@ func(int sockfd, const char *file)
   send(sockfd, file_basename, strlen(file_basename) + 1, 0);
   char buff[BUFSIZ];
   size_t n_bytes_total = 0;
-  do
-  {
-    size_t num;                 // = MIN (len, sizeof (buff));
+  do {
+    size_t num; // = MIN (len, sizeof (buff));
     num = fread(buff, 1, sizeof(buff), fp);
-    if (ferror(fp) != 0)
-    {
+    if (ferror(fp) != 0) {
       fputs("error: fread", stderr);
       exit(-1);
     }
@@ -82,15 +76,13 @@ func(int sockfd, const char *file)
     n_bytes_total += num;
     printf("bytes sent: %li\r", n_bytes_total);
 
-  }
-  while (feof(fp) == 0);
+  } while (feof(fp) == 0);
 
   putchar('\n');
   bzero(buff, sizeof(buff));
   fputs("Server replied: ", stdout);
   int n_bytes_recvd;
-  while ((n_bytes_recvd = recv(sockfd, buff, sizeof(buff), 0)) != 0)
-  {
+  while ((n_bytes_recvd = recv(sockfd, buff, sizeof(buff), 0)) != 0) {
     fputs(buff, stdout);
     *buff = '\0';
   }
@@ -98,18 +90,14 @@ func(int sockfd, const char *file)
   if (n_bytes_recvd < 0)
     perror("recv() failed");
 
-  if (fclose(fp) == EOF)
-  {
+  if (fclose(fp) == EOF) {
     perror("fclose");
   }
 
   return strstr(buff, "already exists") != NULL;
 }
 
-
-static void
-show_usage(const char *prgname)
-{
+static void show_usage(const char *prgname) {
   printf("Usage: %s [OPTIONS]\n\n", prgname);
   puts("\
   -a <address>\n\
@@ -118,17 +106,12 @@ show_usage(const char *prgname)
   return;
 }
 
-
-int
-main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
   int opt;
   char *file = NULL;
 
-  while ((opt = getopt(argc, argv, "f:a:p:h")) != -1)
-  {
-    switch (opt)
-    {
+  while ((opt = getopt(argc, argv, "f:a:p:h")) != -1) {
+    switch (opt) {
     case 'f':
       file = optarg;
       break;
@@ -145,8 +128,7 @@ main(int argc, char *argv[])
     }
   }
 
-  if (file == NULL)
-  {
+  if (file == NULL) {
     fputs("A file must be specified (-f <filename>)\n", stderr);
     exit(EXIT_FAILURE);
   }

@@ -6,25 +6,22 @@
  *
  */
 
+#include <arpa/inet.h>
+#include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
-#include <arpa/inet.h>
-#include <sys/types.h>
 #include <sys/socket.h>
-#include <netdb.h>
+#include <sys/types.h>
+#include <unistd.h>
 
-#define PORT "12345"            // Must match the server's port
+#define PORT "12345" // Must match the server's port
 
-int
-main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
   char *server_addr = NULL;
   if (argc == 2)
     server_addr = argv[1];
-  else
-  {
+  else {
     fputs("You must provide the server address.\n", stderr);
     return 1;
   }
@@ -35,46 +32,40 @@ main(int argc, char *argv[])
 
   // Set up hints for getaddrinfo()
   memset(&hints, 0, sizeof(hints));
-  hints.ai_family = AF_UNSPEC;  // Allow both IPv4 and IPv6
+  hints.ai_family = AF_UNSPEC; // Allow both IPv4 and IPv6
   hints.ai_socktype = SOCK_STREAM;
 
   // Get address info
-  if (getaddrinfo(server_addr, PORT, &hints, &res) != 0)
-  {
+  if (getaddrinfo(server_addr, PORT, &hints, &res) != 0) {
     perror("getaddrinfo");
     return 1;
   }
 
   // Try to connect to one of the results
-  for (p = res; p != NULL; p = p->ai_next)
-  {
+  for (p = res; p != NULL; p = p->ai_next) {
     client_fd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
     if (client_fd == -1)
       continue;
 
     if (connect(client_fd, p->ai_addr, p->ai_addrlen) == 0)
-      break;                    // Connected successfully
+      break; // Connected successfully
 
     close(client_fd);
   }
 
   freeaddrinfo(res);
 
-  if (!p)
-  {
+  if (!p) {
     perror("Failed to connect");
     return 1;
   }
 
   // Read response from server
   ssize_t bytes_received = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
-  if (bytes_received > 0)
-  {
-    buffer[bytes_received] = '\0';      // Null-terminate received data
+  if (bytes_received > 0) {
+    buffer[bytes_received] = '\0'; // Null-terminate received data
     printf("Server response: %s", buffer);
-  }
-  else
-  {
+  } else {
     perror("recv");
   }
 

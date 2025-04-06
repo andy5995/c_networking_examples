@@ -1,5 +1,6 @@
 /*
-// Adapted from https://www.geeksforgeeks.org/tcp-server-client-implementation-in-c/
+// Adapted from
+https://www.geeksforgeeks.org/tcp-server-client-implementation-in-c/
 
  tcp_chat_client.c
  https://github.com/andy5995/c_networking_examples
@@ -28,43 +29,38 @@
 
 */
 
+#include <arpa/inet.h>
 #include <netdb.h>
+#include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
 #include <unistd.h>
 
 #include "netex.h"
 
-void
-func(int sockfd)
-{
+void func(int sockfd) {
   char buff[BUFSIZ];
   int n;
-  for (;;)
-  {
+  for (;;) {
     bzero(buff, sizeof(buff));
     fputs("Enter the string : ", stdout);
     n = 0;
-    while ((buff[n++] = getchar()) != '\n');
+    while ((buff[n++] = getchar()) != '\n')
+      ;
     write(sockfd, buff, sizeof(buff));
     bzero(buff, sizeof(buff));
     read(sockfd, buff, sizeof(buff));
     printf("From Server : %s", buff);
-    if ((strncmp(buff, "exit", 4)) == 0)
-    {
+    if ((strncmp(buff, "exit", 4)) == 0) {
       printf("Client Exit...\n");
       break;
     }
   }
 }
 
-static void
-show_usage(const char *prgname)
-{
+static void show_usage(const char *prgname) {
   printf("Usage: %s [OPTIONS]\n\n", prgname);
   puts("\
   -a <address>\n\
@@ -72,15 +68,11 @@ show_usage(const char *prgname)
   return;
 }
 
-int
-main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
   int opt;
 
-  while ((opt = getopt(argc, argv, "a:p:h")) != -1)
-  {
-    switch (opt)
-    {
+  while ((opt = getopt(argc, argv, "a:p:h")) != -1) {
+    switch (opt) {
     case 'p':
       conn_inf.port = optarg;
       break;

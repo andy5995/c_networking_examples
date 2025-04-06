@@ -1,5 +1,6 @@
 /*
-// Adapted from https://www.geeksforgeeks.org/tcp-server-client-implementation-in-c/
+// Adapted from
+https://www.geeksforgeeks.org/tcp-server-client-implementation-in-c/
 
  tcp_chat_server.c
  https://github.com/andy5995/c_networking_examples
@@ -37,14 +38,11 @@
 #include "netex.h"
 
 // Function designed for chat between client and server.
-void
-func()
-{
+void func() {
   char buff[BUFSIZ];
   int n;
   // infinite loop for chat
-  for (;;)
-  {
+  for (;;) {
     bzero(buff, BUFSIZ);
 
     // read the message from client and copy it in buffer
@@ -54,28 +52,24 @@ func()
     bzero(buff, BUFSIZ);
     n = 0;
     // copy server message in the buffer
-    while ((buff[n++] = getchar()) != '\n');
+    while ((buff[n++] = getchar()) != '\n')
+      ;
 
     // and send that buffer to client
     write(conn_inf.connfd, buff, sizeof(buff));
 
     // if msg contains "Exit" then server exit and chat ended.
-    if (strncmp("exit", buff, 4) == 0)
-    {
+    if (strncmp("exit", buff, 4) == 0) {
       printf("Server Exit...\n");
       break;
     }
   }
 }
 
-
-int
-main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
   parse_server_opts(argc, argv);
 
-  if (get_tcp_server_sockfd() < 0)
-  {
+  if (get_tcp_server_sockfd() < 0) {
     fputs("Error\n", stderr);
     return -1;
   }
@@ -84,13 +78,12 @@ main(int argc, char *argv[])
   socklen_t len = sizeof(cli);
 
   // Accept the data packet from client and verification
-  conn_inf.connfd = accept(conn_inf.sockfd, (struct sockaddr *) &cli, &len);
+  conn_inf.connfd = accept(conn_inf.sockfd, (struct sockaddr *)&cli, &len);
   // sockfd only needed if more connections are desired
   if (close(conn_inf.sockfd))
     perror("close() failed");
 
-  if (conn_inf.connfd < 0)
-  {
+  if (conn_inf.connfd < 0) {
     perror("accept");
     return conn_inf.connfd;
   }

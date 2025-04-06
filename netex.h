@@ -1,6 +1,5 @@
 
-typedef struct
-{
+typedef struct {
   char *host;
   char *port;
   int sockfd;

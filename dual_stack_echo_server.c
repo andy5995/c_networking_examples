@@ -6,49 +6,44 @@
  *
  */
 
+#include <arpa/inet.h>
+#include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
-#include <arpa/inet.h>
-#include <sys/types.h>
 #include <sys/socket.h>
-#include <netdb.h>
+#include <sys/types.h>
+#include <unistd.h>
 
-#define PORT "12345"            // Port to listen on
-#define BACKLOG 10              // Number of pending connections queue
+#define PORT "12345" // Port to listen on
+#define BACKLOG 10   // Number of pending connections queue
 #define MESSAGE "hello world\n"
 
-void
-handle_client(int client_fd)
-{
+void handle_client(int client_fd) {
   send(client_fd, MESSAGE, strlen(MESSAGE), 0);
   close(client_fd);
 }
 
-int
-main()
-{
+int main() {
   int server_fd;
   struct addrinfo hints, *res, *p;
 
   // Set up hints for dual-stack
   memset(&hints, 0, sizeof(hints));
-  hints.ai_family = AF_INET6;   // Use IPv6, but allow IPv4 via v6-mapped addresses
-  hints.ai_socktype = SOCK_STREAM;      // TCP
-  hints.ai_flags = AI_PASSIVE;  // Auto-fill IP
+  hints.ai_family =
+      AF_INET6; // Use IPv6, but allow IPv4 via v6-mapped addresses
+  hints.ai_socktype = SOCK_STREAM; // TCP
+  hints.ai_flags = AI_PASSIVE;     // Auto-fill IP
 
   // Get address info
-  if (getaddrinfo(NULL, PORT, &hints, &res) != 0)
-  {
+  if (getaddrinfo(NULL, PORT, &hints, &res) != 0) {
     perror("getaddrinfo");
     return 1;
   }
 
   int optval = 0;
   // Create and bind socket
-  for (p = res; p != NULL; p = p->ai_next)
-  {
+  for (p = res; p != NULL; p = p->ai_next) {
     server_fd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
     if (server_fd == -1)
       continue;
@@ -56,32 +51,29 @@ main()
     setsockopt(server_fd, IPPROTO_IPV6, IPV6_V6ONLY, &optval, sizeof(optval));
 
     if (bind(server_fd, p->ai_addr, p->ai_addrlen) == 0)
-      break;                    // Success
+      break; // Success
     close(server_fd);
   }
 
   freeaddrinfo(res);
-  if (!p)
-  {
+  if (!p) {
     perror("Failed to bind");
     return 1;
   }
 
   // Start listening
-  if (listen(server_fd, BACKLOG) == -1)
-  {
+  if (listen(server_fd, BACKLOG) == -1) {
     perror("listen");
     return 1;
   }
 
   printf("Server listening on port %s...\n", PORT);
 
-  while (1)
-  {
+  while (1) {
     struct sockaddr_storage client_addr;
     socklen_t addr_size = sizeof(client_addr);
     int client_fd =
-      accept(server_fd, (struct sockaddr *) &client_addr, &addr_size);
+        accept(server_fd, (struct sockaddr *)&client_addr, &addr_size);
     if (client_fd == -1)
       continue;
 

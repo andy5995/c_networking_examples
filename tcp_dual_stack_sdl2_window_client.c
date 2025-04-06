@@ -1,11 +1,11 @@
 #include <arpa/inet.h>
-#include <cstring>
-#include <iostream>
 #include <netdb.h>
-#include <sstream> // Include for std::istringstream
+#include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h> // Include for sscanf
 #include <sys/socket.h>
 #include <sys/types.h>
-#include <thread>
 #include <unistd.h>
 
 #include "graphics.h"
@@ -13,8 +13,9 @@
 
 int connect_to_server(const char *server_addr) {
   int client_fd;
-  struct addrinfo hints{}, *res, *p;
+  struct addrinfo hints, *res, *p;
 
+  memset(&hints, 0, sizeof(hints));
   hints.ai_family = AF_UNSPEC;
   hints.ai_socktype = SOCK_STREAM;
 
@@ -23,7 +24,7 @@ int connect_to_server(const char *server_addr) {
     return -1;
   }
 
-  for (p = res; p != nullptr; p = p->ai_next) {
+  for (p = res; p != NULL; p = p->ai_next) {
     client_fd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
     if (client_fd == -1)
       continue;
@@ -42,28 +43,35 @@ int connect_to_server(const char *server_addr) {
   return client_fd;
 }
 
-void recv_thread(int client_fd, bool *received_first_update,
-                 int *x, int *y) {
+struct recv_args {
+  int client_fd;
+  int *x;
+  int *y;
+  int *received_first_update;
+};
+
+void *recv_thread(void *arg) {
+  struct recv_args *args = (struct recv_args *)arg;
   char buffer[BUFFER_SIZE];
-  while (true) {
-    ssize_t bytes_received = recv(client_fd, buffer, BUFFER_SIZE - 1, 0);
+  while (1) {
+    ssize_t bytes_received = recv(args->client_fd, buffer, BUFFER_SIZE - 1, 0);
     if (bytes_received <= 0)
       break; // connection closed or error
 
     buffer[bytes_received] = '\0';
-    std::istringstream iss(buffer);
     int new_x, new_y;
-    if (iss >> new_x >> new_y) {
-      *x = new_x;
-      *y = new_y;
-      *received_first_update = true;
+    if (sscanf(buffer, "%d %d", &new_x, &new_y) == 2) {
+      *args->x = new_x;
+      *args->y = new_y;
+      *args->received_first_update = 1;
     }
   }
+  return NULL;
 }
 
 int main(int argc, char *argv[]) {
   if (argc != 2) {
-    std::cerr << "Usage: " << argv[0] << " <server_address>\n";
+    fprintf(stderr, "Usage: %s <server_address>\n", argv[0]);
     return 1;
   }
 
@@ -83,17 +91,26 @@ int main(int argc, char *argv[]) {
   SDL_RenderClear(renderer);
   SDL_RenderPresent(renderer);
 
-  bool received_first_update = false;
+  int received_first_update = 0;
   int x = -1, y = -1; // Invalid initial position
 
-  bool running = true;
-  std::thread receiver(recv_thread, client_fd, &received_first_update, &x, &y);
+  int running = 1;
+
+  struct recv_args args = {
+      .client_fd = client_fd,
+      .x = &x,
+      .y = &y,
+      .received_first_update = &received_first_update,
+  };
+
+  pthread_t receiver;
+  pthread_create(&receiver, NULL, recv_thread, &args);
 
   while (running) {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
       if (event.type == SDL_QUIT) {
-        running = false;
+        running = 0;
       }
     }
 
@@ -110,11 +127,9 @@ int main(int argc, char *argv[]) {
     SDL_Delay(16);
   }
 
-  if (receiver.joinable()) {
-    if (shutdown(client_fd, SHUT_RDWR) != 0)
-      perror("shutdown:");
-    receiver.join();
-  }
+  if (shutdown(client_fd, SHUT_RDWR) != 0)
+    perror("shutdown:");
+  pthread_join(receiver, NULL);
   close(client_fd);
 
   SDL_DestroyRenderer(renderer);

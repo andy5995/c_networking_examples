@@ -1,7 +1,3 @@
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #define PORT "61357"
 #define BUFFER_SIZE 64
 #define BACKLOG 10
@@ -24,7 +20,3 @@ int get_udp_server_sockfd(void);
 void parse_server_opts(const int argc, char *argv[]);
 
 int setup_tcp_dual_stack_server();
-
-#ifdef __cplusplus
-}
-#endif

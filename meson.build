@@ -1,30 +1,31 @@
 project(
   'c_networking_examples',
-  ['c', 'cpp'],
+  ['c'],
   version: '0.1.0.555',
   meson_version : '>= 0.56.0',
-  default_options: ['warning_level=3', 'b_sanitize=address,undefined', 'c_std=c99',
-        'cpp_std=c++11'],
+  default_options: ['warning_level=3', 'b_sanitize=address,undefined', 'c_std=c99'],
   )
 
 cc = meson.get_compiler('c')
-cxx = meson.get_compiler('cpp')
+
 extra_flags = [
   '-fno-common',
+  '-fstack-protector-strong',
   '-Wformat-security',
-  '-Wformat-overflow=2',
   '-Wshadow',
-  '-D_DEFAULT_SOURCE',
+  '-Wstrict-overflow=5',
+  '-Werror=odr',
+  '-Werror=lto-type-mismatch',
+  '-Werror=strict-aliasing',
+  '-Wunused-result'
   ]
 
-foreach cflag : extra_flags
-  if cc.has_argument(cflag)
-    add_project_arguments(cflag, language: 'c')
-  endif
-  if cxx.has_argument(cflag)
-    add_project_arguments(cflag, language: 'cpp')
-  endif
-endforeach
+add_project_arguments(cc.get_supported_arguments(extra_flags), language: 'c')
+
+definitions = [
+  '-D_DEFAULT_SOURCE',
+  ]
+add_project_arguments(definitions, language: 'c')
 
 c_example = [
   'dual_stack_echo_client',
@@ -36,11 +37,6 @@ c_example = [
   'tcp_multiple_connections',
   'udp_echo_client',
   'udp_echo_server'
-  ]
-
-sdl_example = [
-  'tcp_dual_stack_sdl2_window_server',
-  'tcp_dual_stack_sdl2_window_client',
   ]
 
 _netex = static_library(
@@ -57,20 +53,28 @@ foreach file : c_example
   )
 endforeach
 
-_graphics = static_library(
-  'graphics',
-  'graphics.cpp',
-  install: false
-  )
+sdl_dep = dependency('sdl2', required: false)
+if sdl_dep.found()
+  sdl_example = [
+    'tcp_dual_stack_sdl2_window_server',
+    'tcp_dual_stack_sdl2_window_client',
+    ]
 
-foreach file : sdl_example
-  executable(
-    file,
-    [file + '.cpp'],
-    link_with: [_graphics, _netex],
-    dependencies: [dependency('sdl2')],
+  _graphics = static_library(
+    'graphics',
+    'graphics.c',
     install: false
-  )
-endforeach
+    )
+
+  foreach file : sdl_example
+    executable(
+      file,
+      [file + '.c'],
+      link_with: [_graphics, _netex],
+      dependencies: sdl_dep,
+      install: false
+    )
+  endforeach
+endif
 
 subdir ('test')

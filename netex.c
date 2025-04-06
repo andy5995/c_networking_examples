@@ -5,7 +5,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
-#define _POSIX_C_SOURCE 200112L
 #include <unistd.h>
 
 #include "netex.h"

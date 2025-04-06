@@ -6,6 +6,12 @@ TCP and UDP examples of networking in C
 
 Website: https://github.com/andy5995/c_networking_examples
 
+## tcp_dual_stack_sdl2_window server and client
+
+When the server is run, an SDL window is created with a red circle. Connect
+with the client. When you click in the server window, the red circle will move
+in the client window.
+
 ## Dual Stack Echo Server
 
 The server listens for connections on both ipv4 and ipv6 addresses. To test,

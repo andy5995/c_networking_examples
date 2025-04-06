@@ -3,14 +3,13 @@ project(
   ['c', 'cpp'],
   version: '0.1.0.555',
   meson_version : '>= 0.56.0',
-  default_options: ['warning_level=3']
+  default_options: ['warning_level=3', 'b_sanitize=address,undefined']
   )
 
 cc = meson.get_compiler('c')
 cxx = meson.get_compiler('cpp')
 extra_flags = [
   '-fno-common',
-  '-fanalyzer',
   '-Wformat-security',
   '-Wformat-overflow=2',
   '-Wshadow',
@@ -19,6 +18,9 @@ extra_flags = [
 foreach cflag : extra_flags
   if cc.has_argument(cflag)
     add_project_arguments(cflag, language: 'c')
+  endif
+  if cxx.has_argument(cflag)
+    add_project_arguments(cflag, language: 'cpp')
   endif
 endforeach
 
@@ -37,6 +39,11 @@ c_example = [
 cpp_example = [
   'dual_stack_echo_client_cpp_base',
   'dual_stack_echo_server_cpp_base',
+  ]
+
+sdl_example = [
+  'tcp_dual_stack_sdl2_window_server',
+  'tcp_dual_stack_sdl2_window_client',
   ]
 
 build_target = library(
@@ -61,6 +68,22 @@ foreach file : cpp_example
     file,
     file + '.cpp',
     link_with: build_target,
+    install: false
+  )
+endforeach
+
+_graphics = static_library(
+  'graphics',
+  'graphics.cpp',
+  install: false
+  )
+
+foreach file : sdl_example
+  executable(
+    file,
+    [file + '.cpp'],
+    link_with: [_graphics, build_target],
+    dependencies: [dependency('sdl2')],
     install: false
   )
 endforeach

@@ -59,15 +59,11 @@ to change that yet.
 
 ## Compiling
 
-You can compile the c files individually:
-
-    cc -Wall 'example.c' netex.c -o 'example'
-
-or use [meson](https://mesonbuild.com/) to build them all at once:
-
-    meson builddir
-    cd builddir
-    ninja
+```sh
+meson builddir
+cd builddir
+ninja
+```
 
 ## See Also
 

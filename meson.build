@@ -41,18 +41,16 @@ sdl_example = [
   'tcp_dual_stack_sdl2_window_client',
   ]
 
-build_target = library(
+_netex = static_library(
   'netex',
   'netex.c',
-  version : '0.1.0',
-  soversion : '0',
   install: false)
 
 foreach file : c_example
   executable(
     file,
     file + '.c',
-    link_with: build_target,
+    link_with: _netex,
     install: false
   )
 endforeach
@@ -67,7 +65,7 @@ foreach file : sdl_example
   executable(
     file,
     [file + '.cpp'],
-    link_with: [_graphics, build_target],
+    link_with: [_graphics, _netex],
     dependencies: [dependency('sdl2')],
     install: false
   )

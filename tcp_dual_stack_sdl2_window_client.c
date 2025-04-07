@@ -43,32 +43,6 @@ int connect_to_server(const char *server_addr) {
   return client_fd;
 }
 
-struct recv_args {
-  int client_fd;
-  int *x;
-  int *y;
-  int *received_first_update;
-};
-
-void *recv_thread(void *arg) {
-  struct recv_args *args = (struct recv_args *)arg;
-  char buffer[BUFFER_SIZE];
-  while (1) {
-    ssize_t bytes_received = recv(args->client_fd, buffer, BUFFER_SIZE - 1, 0);
-    if (bytes_received <= 0)
-      break; // connection closed or error
-
-    buffer[bytes_received] = '\0';
-    int new_x, new_y;
-    if (sscanf(buffer, "%d %d", &new_x, &new_y) == 2) {
-      *args->x = new_x;
-      *args->y = new_y;
-      *args->received_first_update = 1;
-    }
-  }
-  return NULL;
-}
-
 int main(int argc, char *argv[]) {
   if (argc != 2) {
     fprintf(stderr, "Usage: %s <server_address>\n", argv[0]);
@@ -94,13 +68,17 @@ int main(int argc, char *argv[]) {
   int received_first_update = 0;
   int x = -1, y = -1; // Invalid initial position
 
+  int prev_circle_x = x, prev_circle_y = y;
   int running = 1;
 
+  int circle = 0;
+
   struct recv_args args = {
-      .client_fd = client_fd,
+      .sockfd = client_fd,
       .x = &x,
       .y = &y,
       .received_first_update = &received_first_update,
+      .circle = &circle,
   };
 
   pthread_t receiver;
@@ -112,6 +90,16 @@ int main(int argc, char *argv[]) {
       if (event.type == SDL_QUIT) {
         running = 0;
       }
+      if (event.type == SDL_MOUSEBUTTONDOWN) {
+        x = event.button.x;
+        y = event.button.y;
+        circle = 0;
+        char message[64];
+        int len = snprintf(message, sizeof(message), "%d %d %d\n", x, y, circle);
+        if (send(client_fd, message, len, 0) == -1)
+          perror("send:");
+        printf("client sending %s\n", message);
+      }
     }
 
     // Draw white background
@@ -119,8 +107,14 @@ int main(int argc, char *argv[]) {
     SDL_RenderClear(renderer);
 
     // Only draw the circle if we received a valid update from the server
-    if (received_first_update) {
-      draw_filled_circle(renderer, x, y, CIRCLE_RADIUS);
+    //if (received_first_update) {
+      //draw_filled_area(renderer, x, y, CIRCLE_RADIUS, circle);
+    //}
+
+    if (prev_circle_x != x || prev_circle_y == y) {
+      prev_circle_x = x;
+      prev_circle_y = y;
+      draw_filled_area(renderer, x, y, CIRCLE_RADIUS, circle);
     }
 
     SDL_RenderPresent(renderer);

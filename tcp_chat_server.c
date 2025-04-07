@@ -67,7 +67,8 @@ void func() {
 }
 
 int main(int argc, char *argv[]) {
-  parse_server_opts(argc, argv);
+  struct conn_info2 conn_info2;
+  parse_server_opts(argc, argv, &conn_info2);
 
   if (get_tcp_server_sockfd() < 0) {
     fputs("Error\n", stderr);

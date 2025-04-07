@@ -184,7 +184,8 @@ static int accept_connection(void) {
 }
 
 int main(int argc, char *argv[]) {
-  parse_server_opts(argc, argv);
+  struct conn_info2 conn_info2;
+  parse_server_opts(argc, argv, &conn_info2);
 
   if (accept_connection() < 0)
     return -1;

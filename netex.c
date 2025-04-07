@@ -166,13 +166,25 @@ int get_udp_server_sockfd(void) {
 
 static void show_server_usage(const char *prgname) {
   printf("Usage: %s [OPTIONS]\n\n", prgname);
-  puts("\
-  -p <port>\n");
+  printf("\
+  -a <host>\n\
+  -p <port> (Default: %s)\n\n",
+         PORT);
   return;
 }
 
-void parse_server_opts(const int argc, char *argv[]) {
+static void show_client_usage(const char *prgname) {
+  printf("Usage: %s [OPTIONS]\n\n", prgname);
+  printf("\
+  -p <port> (Default: %s)\n\n",
+         PORT);
+  return;
+}
+
+void parse_server_opts(const int argc, char *argv[], struct conn_info2 *x) {
   int opt;
+  *x->host = '\0';
+  *x->port = '\0';
 
   while ((opt = getopt(argc, argv, "p:h")) != -1) {
     switch (opt) {
@@ -185,6 +197,42 @@ void parse_server_opts(const int argc, char *argv[]) {
       exit(0);
     }
   }
+
+  if (!*x->port)
+    snprintf(x->port, NI_MAXSERV, "%s", PORT);
+
+  return;
+}
+
+void parse_client_opts(const int argc, char *argv[], struct conn_info2 *x) {
+  int opt;
+  *x->host = '\0';
+  *x->port = '\0';
+
+  while ((opt = getopt(argc, argv, "a:p:h")) != -1) {
+    switch (opt) {
+    case 'p':
+      snprintf(x->port, NI_MAXSERV, "%s", optarg);
+      conn_inf.port = optarg;
+      break;
+    case 'a':
+      snprintf(x->host, NI_MAXHOST, "%s", optarg);
+      break;
+    case 'h':
+    default:
+      show_client_usage(argv[0]);
+      exit(EXIT_SUCCESS);
+    }
+  }
+
+  if (!*x->port)
+    snprintf(x->port, NI_MAXSERV, "%s", PORT);
+
+  if (!*x->host) {
+    fputs("-a <host> is required\n", stderr);
+    exit(EXIT_FAILURE);
+  }
+
   return;
 }
 
@@ -240,3 +288,33 @@ int setup_tcp_dual_stack_server(void) {
   }
   return server_fd;
 }
+
+#include <stdbool.h> // Make sure this is included
+
+void *recv_thread(void *arg) {
+  struct recv_args *args = (struct recv_args *)arg;
+  char buffer[BUFFER_SIZE];
+  while (1) {
+    ssize_t bytes_received = recv(args->sockfd, buffer, BUFFER_SIZE - 1, 0);
+    if (bytes_received <= 0) {
+      fputs("error: recv\n", stderr);
+      if (bytes_received == -1)
+        perror("recv:");
+      break; // connection closed or error
+    }
+
+    buffer[bytes_received] = '\0';
+    printf("received bytes: %s\n", buffer);
+    int new_x, new_y;
+    int new_circle_int; // Use int here for sscanf
+
+    if (sscanf(buffer, "%d %d %d", &new_x, &new_y, &new_circle_int) == 3) {
+      *args->x = new_x;
+      *args->y = new_y;
+      *args->received_first_update = 1;
+      *args->circle = new_circle_int;
+    }
+  }
+  return NULL;
+}
+

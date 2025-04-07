@@ -38,12 +38,8 @@
 #include <unistd.h>
 
 int main(int argc, char *argv[]) {
-  if (argc != 2) {
-    fprintf(stderr, "Usage: %s port\n", argv[0]);
-    return -1;
-  }
-
-  conn_inf.port = argv[1];
+  struct conn_info2 conn_info2;
+  parse_server_opts(argc, argv, &conn_info2);
 
   int r = get_udp_server_sockfd();
 
@@ -57,12 +53,12 @@ int main(int argc, char *argv[]) {
     if (nread == -1)
       continue; /* Ignore failed request */
 
-    char host[NI_MAXHOST], service[NI_MAXSERV];
-
-    int s = getnameinfo((struct sockaddr *)&peer_addr, peer_addr_len, host,
-                        NI_MAXHOST, service, NI_MAXSERV, NI_NUMERICSERV);
+    int s = getnameinfo((struct sockaddr *)&peer_addr, peer_addr_len,
+                        conn_info2.host, NI_MAXHOST, conn_info2.port,
+                        NI_MAXSERV, NI_NUMERICSERV);
     if (s == 0)
-      printf("Received %ld bytes from %s:%s\n", (long)nread, host, service);
+      printf("Received %ld bytes from %s:%s\n", (long)nread, conn_info2.host,
+             conn_info2.port);
     else
       fprintf(stderr, "getnameinfo: %s\n", gai_strerror(s));
 

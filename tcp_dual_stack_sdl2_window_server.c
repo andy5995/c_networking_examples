@@ -42,32 +42,41 @@ int main() {
   SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
   SDL_RenderClear(renderer);
 
-  int circle_x = WINDOW_WIDTH / 2, circle_y = WINDOW_HEIGHT / 2;
+  int received_first_update = 0;
+  int x = WINDOW_WIDTH / 2, y = WINDOW_HEIGHT / 2;
 
-  draw_filled_circle(renderer, circle_x, circle_y, CIRCLE_RADIUS);
+  draw_filled_area(renderer, x, y, CIRCLE_RADIUS, 1);
   SDL_RenderPresent(renderer);
 
   int fds[2] = {server_fd, -1};
   int first_packet_sent = 0;
   pthread_t net_thread;
   pthread_create(&net_thread, NULL, accept_thread, fds);
+  pthread_join(net_thread, NULL);
 
-  int prev_circle_x = circle_x, prev_circle_y = circle_y;
+  int prev_circle_x = x, prev_circle_y = y;
 
   int running = 1;
-  while (running) {
-    if (fds[1] != -1 && (!first_packet_sent || prev_circle_x != circle_x ||
-                         prev_circle_y != circle_y)) {
-      char message[64];
-      int len =
-          snprintf(message, sizeof(message), "%d %d\n", circle_x, circle_y);
 
-      send(fds[1], message, len, 0);
-      if (!first_packet_sent)
-        first_packet_sent = 1;
-      prev_circle_x = circle_x;
-      prev_circle_y = circle_y;
-    }
+  int circle = 1;
+
+  struct recv_args args = {
+      .sockfd = fds[1],
+      .x = &x,
+      .y = &y,
+      .received_first_update = &received_first_update,
+      .circle = &circle,
+  };
+
+  pthread_t receiver;
+  pthread_create(&receiver, NULL, recv_thread, &args);
+
+  while (running) {
+    // if (fds[1] != -1 && (!first_packet_sent || prev_circle_x != x ||
+    // prev_circle_y != y)) {
+    // if (!first_packet_sent)
+    // first_packet_sent = 1;
+    //    }
 
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
@@ -75,8 +84,14 @@ int main() {
         running = 0;
       }
       if (event.type == SDL_MOUSEBUTTONDOWN) {
-        circle_x = event.button.x;
-        circle_y = event.button.y;
+        x = event.button.x;
+        y = event.button.y;
+        circle = 1;
+        char message[64];
+        int len = snprintf(message, sizeof(message), "%d %d %d\n", x, y, circle);
+
+        send(fds[1], message, len, 0);
+        printf("server sending %s\n", message);
       }
     }
 
@@ -84,7 +99,16 @@ int main() {
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
     SDL_RenderClear(renderer);
 
-    draw_filled_circle(renderer, circle_x, circle_y, CIRCLE_RADIUS);
+    // Only draw the circle if we received a valid update from the server
+    //if (received_first_update) {
+      //draw_filled_area(renderer, x, y, CIRCLE_RADIUS, circle);
+    //}
+
+    if (prev_circle_x != x || prev_circle_y == y) {
+      prev_circle_x = x;
+      prev_circle_y = y;
+      draw_filled_area(renderer, x, y, CIRCLE_RADIUS, circle);
+    }
 
     SDL_RenderPresent(renderer);
     SDL_Delay(16); // Small delay to prevent high CPU usage
@@ -94,7 +118,8 @@ int main() {
     if (shutdown(server_fd, SHUT_RDWR) != 0)
       perror("shutdown:");
   }
-  pthread_join(net_thread, NULL);
+  pthread_join(receiver, NULL);
+  // pthread_join(net_thread, NULL);
 
   close(server_fd);
   SDL_DestroyRenderer(renderer);

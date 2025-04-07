@@ -35,6 +35,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include "netex.h"
+
 int main(int argc, char *argv[]) {
   struct addrinfo hints;
   struct addrinfo *result, *rp;
@@ -42,11 +44,6 @@ int main(int argc, char *argv[]) {
   socklen_t len;
   ssize_t nread;
   char buf[BUFSIZ];
-
-  if (argc < 3) {
-    fprintf(stderr, "Usage: %s host port msg...\n", argv[0]);
-    return -1;
-  }
 
   /* Obtain address(es) matching host/port */
 
@@ -56,7 +53,10 @@ int main(int argc, char *argv[]) {
   hints.ai_flags = 0;
   hints.ai_protocol = 0; /* Any protocol */
 
-  s = getaddrinfo(argv[1], argv[2], &hints, &result);
+  struct conn_info2 conn_info2;
+  parse_client_opts(argc, argv, &conn_info2);
+
+  s = getaddrinfo(conn_info2.host, conn_info2.port, &hints, &result);
   if (s != 0) {
     fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(s));
     return -1;

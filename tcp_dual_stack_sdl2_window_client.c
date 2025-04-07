@@ -53,81 +53,23 @@ int main(int argc, char *argv[]) {
   if (client_fd == -1)
     return 1;
 
-  SDL_Init(SDL_INIT_VIDEO);
-  SDL_Window *window = SDL_CreateWindow("SDL2 Client", SDL_WINDOWPOS_CENTERED,
-                                        SDL_WINDOWPOS_CENTERED, WINDOW_WIDTH,
-                                        WINDOW_HEIGHT, SDL_WINDOW_SHOWN);
-  SDL_Renderer *renderer =
-      SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+  struct sdl_objects sdl_objects;
+  init_sdl_window(&sdl_objects, "SDL Client");
 
-  // Draw white background
-  SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-  SDL_RenderClear(renderer);
-  SDL_RenderPresent(renderer);
-
-  int received_first_update = 0;
   int x = -1, y = -1; // Invalid initial position
 
-  int prev_circle_x = x, prev_circle_y = y;
-  int running = 1;
-
-  int circle = 0;
-
-  struct recv_args args = {
-      .sockfd = client_fd,
-      .x = &x,
-      .y = &y,
-      .received_first_update = &received_first_update,
-      .circle = &circle,
-  };
-
   pthread_t receiver;
-  pthread_create(&receiver, NULL, recv_thread, &args);
-
-  while (running) {
-    SDL_Event event;
-    while (SDL_PollEvent(&event)) {
-      if (event.type == SDL_QUIT) {
-        running = 0;
-      }
-      if (event.type == SDL_MOUSEBUTTONDOWN) {
-        x = event.button.x;
-        y = event.button.y;
-        circle = 0;
-        char message[64];
-        int len = snprintf(message, sizeof(message), "%d %d %d\n", x, y, circle);
-        if (send(client_fd, message, len, 0) == -1)
-          perror("send:");
-        printf("client sending %s\n", message);
-      }
-    }
-
-    // Draw white background
-    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-    SDL_RenderClear(renderer);
-
-    // Only draw the circle if we received a valid update from the server
-    //if (received_first_update) {
-      //draw_filled_area(renderer, x, y, CIRCLE_RADIUS, circle);
-    //}
-
-    if (prev_circle_x != x || prev_circle_y == y) {
-      prev_circle_x = x;
-      prev_circle_y = y;
-      draw_filled_area(renderer, x, y, CIRCLE_RADIUS, circle);
-    }
-
-    SDL_RenderPresent(renderer);
-    SDL_Delay(16);
-  }
+  run_sdl_loop(sdl_objects.renderer, x, y, client_fd, SQUARE, &receiver);
 
   if (shutdown(client_fd, SHUT_RDWR) != 0)
     perror("shutdown:");
-  pthread_join(receiver, NULL);
-  close(client_fd);
 
-  SDL_DestroyRenderer(renderer);
-  SDL_DestroyWindow(window);
+  if (close(client_fd) != 0)
+    perror("close:");
+  pthread_join(receiver, NULL);
+
+  SDL_DestroyRenderer(sdl_objects.renderer);
+  SDL_DestroyWindow(sdl_objects.window);
   SDL_Quit();
 
   return 0;

@@ -3,11 +3,6 @@
 #define PORT "61357"
 #define BACKLOG 10
 
-enum {
-  SERVER_FD,
-  CLIENT_FD,
-};
-
 typedef struct {
   char *host;
   char *port;

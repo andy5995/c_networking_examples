@@ -11,11 +11,13 @@ enum e_shape {
   SQUARE,
 };
 
-struct recv_args {
+struct peer_state {
   int sockfd;
-  int *x;
-  int *y;
-  enum e_shape *do_shape;
+  int x;
+  int prev_x;
+  int y;
+  int prev_y;
+  enum e_shape do_shape;
 };
 
 struct sdl_objects {

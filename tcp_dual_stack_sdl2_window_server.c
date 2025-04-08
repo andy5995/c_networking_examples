@@ -11,20 +11,6 @@
 #include "graphics.h"
 #include "netex.h"
 
-void *accept_thread(void *arg) {
-  int *fds = (int *)arg;
-  int server_fd = fds[SERVER_FD];
-  int *client_fd = &fds[CLIENT_FD];
-
-  struct sockaddr_storage client_addr;
-  socklen_t addr_size = sizeof(client_addr);
-  *client_fd = accept(server_fd, (struct sockaddr *)&client_addr, &addr_size);
-  if (*client_fd == -1) {
-    perror("Client connection failed");
-  }
-  return NULL;
-}
-
 int main() {
   int server_fd = setup_tcp_dual_stack_server();
   if (server_fd == -1)
@@ -33,10 +19,14 @@ int main() {
   printf("Server listening on port %s...\n", PORT);
 
   int fds[2] = {server_fd, -1};
-  int first_packet_sent = 0;
-  pthread_t net_thread;
-  pthread_create(&net_thread, NULL, accept_thread, fds);
-  pthread_join(net_thread, NULL);
+
+  struct sockaddr_storage client_addr;
+  socklen_t addr_size = sizeof(client_addr);
+  int client_fd = accept(server_fd, (struct sockaddr *)&client_addr, &addr_size);
+  if (client_fd == -1) {
+    perror("Client connection failed");
+  }
+  fds[CLIENT_FD] = client_fd;
 
   struct sdl_objects sdl_objects;
   init_sdl_window(&sdl_objects, "SDL Server");

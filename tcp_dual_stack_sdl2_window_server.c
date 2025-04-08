@@ -22,22 +22,18 @@ int main() {
 
   struct sockaddr_storage client_addr;
   socklen_t addr_size = sizeof(client_addr);
-  int client_fd = accept(server_fd, (struct sockaddr *)&client_addr, &addr_size);
+  int client_fd =
+      accept(server_fd, (struct sockaddr *)&client_addr, &addr_size);
   if (client_fd == -1) {
     perror("Client connection failed");
   }
   fds[CLIENT_FD] = client_fd;
 
-  struct sdl_objects sdl_objects;
-  init_sdl_window(&sdl_objects, "SDL Server");
-
-  int x = WINDOW_WIDTH / 2, y = WINDOW_HEIGHT / 2;
-
-  draw_filled_area(sdl_objects.renderer, x, y, CIRCLE_RADIUS, 1);
-  SDL_RenderPresent(sdl_objects.renderer);
+  struct sdl_context sdl_context;
+  init_sdl_window(&sdl_context, "SDL Server");
 
   pthread_t receiver;
-  run_sdl_loop(sdl_objects.renderer, x, y, fds[CLIENT_FD], CIRCLE, &receiver);
+  run_sdl_loop(sdl_context.renderer, fds[CLIENT_FD], CIRCLE, &receiver);
 
   if (fds[CLIENT_FD] == -1) {
     if (shutdown(server_fd, SHUT_RDWR) != 0)
@@ -49,9 +45,8 @@ int main() {
 
   if (close(fds[SERVER_FD]) != 0)
     perror("close:");
-  SDL_DestroyRenderer(sdl_objects.renderer);
-  SDL_DestroyWindow(sdl_objects.window);
-  SDL_Quit();
+
+  do_sdl_cleanup(&sdl_context);
 
   return 0;
 }

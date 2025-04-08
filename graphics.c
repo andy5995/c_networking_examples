@@ -2,25 +2,35 @@
 
 #include "graphics.h"
 
-void init_sdl_window(struct sdl_objects *sdl_objects, const char *title)
-{
+struct peer_state {
+  int sockfd;
+  int x;
+  int y;
+  enum e_shape do_shape;
+};
+
+void init_sdl_window(struct sdl_context *sdl_context, const char *title) {
   SDL_Init(SDL_INIT_VIDEO);
   const char *client = strstr(title, "Client");
-  int win_pos_x = (client != NULL) ? WINDOW_WIDTH / 2 + 10 : SDL_WINDOWPOS_CENTERED;
-  int win_pos_y = (client != NULL) ? WINDOW_HEIGHT / 2 + 10 : SDL_WINDOWPOS_CENTERED;
-  sdl_objects->window = SDL_CreateWindow(title, win_pos_x, win_pos_y, WINDOW_WIDTH,
-                                        WINDOW_HEIGHT, SDL_WINDOW_SHOWN);
-  sdl_objects->renderer =
-      SDL_CreateRenderer(sdl_objects->window, -1, SDL_RENDERER_ACCELERATED);
+  int win_pos_x =
+      (client != NULL) ? WINDOW_WIDTH / 2 + 10 : SDL_WINDOWPOS_CENTERED;
+  int win_pos_y =
+      (client != NULL) ? WINDOW_HEIGHT / 2 + 10 : SDL_WINDOWPOS_CENTERED;
+  sdl_context->window =
+      SDL_CreateWindow(title, win_pos_x, win_pos_y, WINDOW_WIDTH, WINDOW_HEIGHT,
+                       SDL_WINDOW_SHOWN);
+  sdl_context->renderer =
+      SDL_CreateRenderer(sdl_context->window, -1, SDL_RENDERER_ACCELERATED);
 
   // Draw white background
-  SDL_SetRenderDrawColor(sdl_objects->renderer, 255, 255, 255, 255);
-  SDL_RenderClear(sdl_objects->renderer);
-  SDL_RenderPresent(sdl_objects->renderer);
+  SDL_SetRenderDrawColor(sdl_context->renderer, 255, 255, 255, 255);
+  SDL_RenderClear(sdl_context->renderer);
+  SDL_RenderPresent(sdl_context->renderer);
   return;
 }
 
-void draw_filled_area(SDL_Renderer *renderer, int x, int y, int r, enum e_shape shape) {
+static void draw_filled_area(SDL_Renderer *renderer, int x, int y, int r,
+                             enum e_shape shape) {
   SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
   for (int w = 0; w < r * 2; w++) {
     for (int h = 0; h < r * 2; h++) {
@@ -29,16 +39,14 @@ void draw_filled_area(SDL_Renderer *renderer, int x, int y, int r, enum e_shape 
       if (shape == CIRCLE) {
         if ((dx * dx + dy * dy) <= (r * r))
           SDL_RenderDrawPoint(renderer, x + dx, y + dy);
-      }
-      else
+      } else
         SDL_RenderDrawPoint(renderer, x + dx, y + dy);
-
     }
   }
   return;
 }
 
-void *recv_thread(void *arg) {
+static void *recv_thread(void *arg) {
   struct peer_state *args = (struct peer_state *)arg;
   char buffer[BUFFER_SIZE];
   while (1) {
@@ -62,21 +70,23 @@ void *recv_thread(void *arg) {
   return NULL;
 }
 
-void run_sdl_loop(SDL_Renderer *renderer, int x, int y, int client_fd, enum e_shape shape, pthread_t *receiver)
-{
-  enum e_shape do_shape = shape;
+void run_sdl_loop(SDL_Renderer *renderer, int client_fd, enum e_shape shape,
+                  pthread_t *receiver) {
+  int x = WINDOW_WIDTH / 2, y = WINDOW_HEIGHT / 2;
 
   struct peer_state peer_state = {
       .sockfd = client_fd,
       .x = WINDOW_WIDTH / 2,
-      .prev_x = 0,
-      .y = WINDOW_HEIGHT /2,
-      .prev_y = 0,
+      .y = WINDOW_HEIGHT / 2,
       .do_shape = shape,
   };
 
   pthread_create(receiver, NULL, recv_thread, &peer_state);
-  int prev_x = x, prev_y = y;
+
+  char message[64];
+  int len = snprintf(message, sizeof(message), "%d %d %d\n", x, y, shape);
+  if (send(client_fd, message, len, 0) == -1)
+    perror("send:");
 
   int running = 1;
   while (running) {
@@ -88,8 +98,7 @@ void run_sdl_loop(SDL_Renderer *renderer, int x, int y, int client_fd, enum e_sh
       if (event.type == SDL_MOUSEBUTTONDOWN) {
         x = event.button.x;
         y = event.button.y;
-        char message[64];
-        int len = snprintf(message, sizeof(message), "%d %d %d\n", x, y, shape);
+        len = snprintf(message, sizeof(message), "%d %d %d\n", x, y, shape);
         if (send(client_fd, message, len, 0) == -1) {
           perror("send:");
           printf("client sending %s\n", message);
@@ -101,18 +110,17 @@ void run_sdl_loop(SDL_Renderer *renderer, int x, int y, int client_fd, enum e_sh
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
     SDL_RenderClear(renderer);
 
-    if (peer_state.prev_x != peer_state.x || peer_state.prev_y == peer_state.y) {
-      peer_state.prev_x =  peer_state.x;
-      peer_state.prev_y = peer_state.y;
-      draw_filled_area(renderer, peer_state.x, peer_state.y, CIRCLE_RADIUS, peer_state.do_shape);
-    }
-    if (prev_x != x || prev_y == y) {
-      prev_x = x;
-      prev_y = y;
-      draw_filled_area(renderer, x, y, CIRCLE_RADIUS, shape);
-    }
+    draw_filled_area(renderer, peer_state.x, peer_state.y, CIRCLE_RADIUS,
+                     peer_state.do_shape);
+    draw_filled_area(renderer, x, y, CIRCLE_RADIUS, shape);
 
     SDL_RenderPresent(renderer);
     SDL_Delay(16);
   }
+}
+
+void do_sdl_cleanup(struct sdl_context *sdl_context) {
+  SDL_DestroyRenderer(sdl_context->renderer);
+  SDL_DestroyWindow(sdl_context->window);
+  SDL_Quit();
 }

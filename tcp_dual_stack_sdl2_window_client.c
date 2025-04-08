@@ -53,13 +53,11 @@ int main(int argc, char *argv[]) {
   if (client_fd == -1)
     return 1;
 
-  struct sdl_objects sdl_objects;
-  init_sdl_window(&sdl_objects, "SDL Client");
-
-  int x = -1, y = -1; // Invalid initial position
+  struct sdl_context sdl_context;
+  init_sdl_window(&sdl_context, "SDL Client");
 
   pthread_t receiver;
-  run_sdl_loop(sdl_objects.renderer, x, y, client_fd, SQUARE, &receiver);
+  run_sdl_loop(sdl_context.renderer, client_fd, SQUARE, &receiver);
 
   if (shutdown(client_fd, SHUT_RDWR) != 0)
     perror("shutdown:");
@@ -68,9 +66,7 @@ int main(int argc, char *argv[]) {
     perror("close:");
   pthread_join(receiver, NULL);
 
-  SDL_DestroyRenderer(sdl_objects.renderer);
-  SDL_DestroyWindow(sdl_objects.window);
-  SDL_Quit();
+  do_sdl_cleanup(&sdl_context);
 
   return 0;
 }

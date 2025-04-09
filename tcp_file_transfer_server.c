@@ -57,7 +57,7 @@ static int recv_file(void) {
   memset(buff, 0, sizeof buff);
 
   struct pollfd pfds[1]; // More if you want to monitor more
-  pfds[0].fd = conn_inf.connfd;
+  pfds[0].fd = conn_inf.server_fd;
   pfds[0].events = POLLIN; // Alert me when I can read() data from this socket
                            // without blocking.
 
@@ -68,7 +68,7 @@ static int recv_file(void) {
       break;
     } else {
       if (pfds[0].revents & POLLIN) {
-        n_bytes_recvd = recv(conn_inf.connfd, buff, sizeof(buff), 0);
+        n_bytes_recvd = recv(conn_inf.server_fd, buff, sizeof(buff), 0);
         char *buf_file_dat_ptr = buff;
         if (!have_filename) {
           ssize_t i;
@@ -167,14 +167,14 @@ static int accept_connection(void) {
   socklen_t len = sizeof(cli);
 
   // Accept the data packet from client and verification
-  conn_inf.connfd = accept(conn_inf.sockfd, (struct sockaddr *)&cli, &len);
+  conn_inf.server_fd = accept(conn_inf.sockfd, (struct sockaddr *)&cli, &len);
   // sockfd only needed if more connections are desired
   if (close(conn_inf.sockfd))
     perror("close() failed");
 
-  if (conn_inf.connfd < 0) {
+  if (conn_inf.server_fd < 0) {
     perror("accept");
-    return conn_inf.connfd;
+    return conn_inf.server_fd;
   }
 
   puts("Client connected");
@@ -184,15 +184,14 @@ static int accept_connection(void) {
 }
 
 int main(int argc, char *argv[]) {
-  struct conn_info2 conn_info2;
-  parse_server_opts(argc, argv, &conn_info2);
+  parse_server_opts(argc, argv);
 
   if (accept_connection() < 0)
     return -1;
 
   int f_exists = recv_file();
 
-  if (close(conn_inf.connfd))
+  if (close(conn_inf.server_fd))
     perror("close() failed");
 
   return f_exists;

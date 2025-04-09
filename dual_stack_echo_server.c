@@ -25,22 +25,19 @@ void handle_client(int client_fd) {
 }
 
 int main() {
-
-  int server_fd = setup_tcp_dual_stack_server();
-
-  printf("Server listening on port %s...\n", PORT);
+  assign_tcp_dual_stack_server_fd();
 
   while (1) {
     struct sockaddr_storage client_addr;
     socklen_t addr_size = sizeof(client_addr);
-    int client_fd =
-        accept(server_fd, (struct sockaddr *)&client_addr, &addr_size);
-    if (client_fd == -1)
+    conn_inf.sockfd =
+        accept(conn_inf.server_fd, (struct sockaddr *)&client_addr, &addr_size);
+    if (conn_inf.sockfd == -1)
       continue;
 
-    handle_client(client_fd);
+    handle_client(conn_inf.sockfd);
   }
 
-  close(server_fd);
+  close(conn_inf.server_fd);
   return 0;
 }

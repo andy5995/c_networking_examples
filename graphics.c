@@ -101,7 +101,6 @@ void run_sdl_loop(SDL_Renderer *renderer, int client_fd, enum e_shape shape,
         len = snprintf(message, sizeof(message), "%d %d %d\n", x, y, shape);
         if (send(client_fd, message, len, 0) == -1) {
           perror("send:");
-          printf("client sending %s\n", message);
         }
       }
     }

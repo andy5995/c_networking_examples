@@ -11,27 +11,27 @@
 #include "graphics.h"
 #include "netex.h"
 
-int connect_to_server(const char *server_addr) {
-  int client_fd;
+int connect_to_server() {
+
   struct addrinfo hints, *res, *p;
 
   memset(&hints, 0, sizeof(hints));
   hints.ai_family = AF_UNSPEC;
   hints.ai_socktype = SOCK_STREAM;
 
-  if (getaddrinfo(server_addr, PORT, &hints, &res) != 0) {
+  if (getaddrinfo(conn_inf.host, conn_inf.port, &hints, &res) != 0) {
     perror("getaddrinfo");
     return -1;
   }
 
   for (p = res; p != NULL; p = p->ai_next) {
-    client_fd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
-    if (client_fd == -1)
+    conn_inf.sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
+    if (conn_inf.sockfd == -1)
       continue;
 
-    if (connect(client_fd, p->ai_addr, p->ai_addrlen) == 0)
+    if (connect(conn_inf.sockfd, p->ai_addr, p->ai_addrlen) == 0)
       break;
-    close(client_fd);
+    close(conn_inf.sockfd);
   }
 
   freeaddrinfo(res);
@@ -40,29 +40,26 @@ int connect_to_server(const char *server_addr) {
     return -1;
   }
 
-  return client_fd;
+  return conn_inf.sockfd;
 }
 
 int main(int argc, char *argv[]) {
-  if (argc != 2) {
-    fprintf(stderr, "Usage: %s <server_address>\n", argv[0]);
-    return 1;
-  }
+  parse_client_opts(argc, argv);
 
-  int client_fd = connect_to_server(argv[1]);
-  if (client_fd == -1)
+  conn_inf.sockfd = connect_to_server();
+  if (conn_inf.sockfd == -1)
     return 1;
 
   struct sdl_context sdl_context;
   init_sdl_window(&sdl_context, "SDL Client");
 
   pthread_t receiver;
-  run_sdl_loop(sdl_context.renderer, client_fd, SQUARE, &receiver);
+  run_sdl_loop(sdl_context.renderer, conn_inf.sockfd, SQUARE, &receiver);
 
-  if (shutdown(client_fd, SHUT_RDWR) != 0)
+  if (shutdown(conn_inf.sockfd, SHUT_RDWR) != 0)
     perror("shutdown:");
 
-  if (close(client_fd) != 0)
+  if (close(conn_inf.sockfd) != 0)
     perror("close:");
   pthread_join(receiver, NULL);
 

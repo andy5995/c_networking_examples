@@ -36,7 +36,7 @@ int main(int argc, char *argv[]) {
   hints.ai_socktype = SOCK_STREAM;
 
   // Get address info
-  if (getaddrinfo(server_addr, PORT, &hints, &res) != 0) {
+  if (getaddrinfo(server_addr, conn_inf.port, &hints, &res) != 0) {
     perror("getaddrinfo");
     return 1;
   }

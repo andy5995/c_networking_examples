@@ -79,8 +79,7 @@ void del_from_pfds(struct pollfd pfds[], int i, int *fd_count) {
 }
 
 int main(int argc, char *argv[]) {
-  struct conn_info2 conn_info2;
-  parse_server_opts(argc, argv, &conn_info2);
+  parse_server_opts(argc, argv);
 
   struct sockaddr_storage remoteaddr; // Client address
   socklen_t addrlen;

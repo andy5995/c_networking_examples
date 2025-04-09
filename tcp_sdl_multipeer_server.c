@@ -11,18 +11,15 @@
 #include "graphics.h"
 #include "netex.h"
 
-int main() {
-  int server_fd = setup_tcp_dual_stack_server();
-  if (server_fd == -1)
-    return 1;
-
-  printf("Server listening on port %s...\n", PORT);
+int main(int argc, char *argv[]) {
+  parse_server_opts(argc, argv);
+  assign_tcp_dual_stack_server_fd();
 
   struct sockaddr_storage client_addr;
   socklen_t addr_size = sizeof(client_addr);
-  int client_fd =
-      accept(server_fd, (struct sockaddr *)&client_addr, &addr_size);
-  if (client_fd == -1) {
+  conn_inf.sockfd =
+      accept(conn_inf.server_fd, (struct sockaddr *)&client_addr, &addr_size);
+  if (conn_inf.sockfd == -1) {
     perror("Client connection failed");
   }
 
@@ -30,17 +27,17 @@ int main() {
   init_sdl_window(&sdl_context, "SDL Server");
 
   pthread_t receiver;
-  run_sdl_loop(sdl_context.renderer, client_fd, CIRCLE, &receiver);
+  run_sdl_loop(sdl_context.renderer, conn_inf.sockfd, CIRCLE, &receiver);
 
-  if (client_fd == -1) {
-    if (shutdown(server_fd, SHUT_RDWR) != 0)
+  if (conn_inf.sockfd == -1) {
+    if (shutdown(conn_inf.server_fd, SHUT_RDWR) != 0)
       perror("shutdown:");
-    if (close(client_fd) != 0)
+    if (close(conn_inf.sockfd) != 0)
       perror("close:");
     pthread_join(receiver, NULL);
   }
 
-  if (close(server_fd) != 0)
+  if (close(conn_inf.server_fd) != 0)
     perror("close:");
 
   do_sdl_cleanup(&sdl_context);

@@ -38,42 +38,42 @@
 #include <unistd.h>
 
 int main(int argc, char *argv[]) {
-  struct conn_info2 conn_info2;
-  parse_server_opts(argc, argv, &conn_info2);
+  parse_server_opts(argc, argv);
 
-  int r = get_udp_server_sockfd();
+  assign_udp_server_fd();
 
   /* Read datagrams and echo them back to sender */
   for (;;) {
     struct sockaddr_storage peer_addr;
     char buf[BUFSIZ];
     socklen_t peer_addr_len = sizeof(struct sockaddr_storage);
-    ssize_t nread = recvfrom(conn_inf.sockfd, buf, BUFSIZ, 0,
+    ssize_t nread = recvfrom(conn_inf.server_fd, buf, BUFSIZ, 0,
                              (struct sockaddr *)&peer_addr, &peer_addr_len);
-    if (nread == -1)
-      continue; /* Ignore failed request */
 
-    int s = getnameinfo((struct sockaddr *)&peer_addr, peer_addr_len,
-                        conn_info2.host, NI_MAXHOST, conn_info2.port,
-                        NI_MAXSERV, NI_NUMERICSERV);
+    if (nread == -1) {
+      continue; /* Ignore failed request */
+    }
+
+    char host[NI_MAXHOST], service[NI_MAXSERV];
+    int s = getnameinfo((struct sockaddr *)&peer_addr, peer_addr_len, host,
+                        NI_MAXHOST, service, NI_MAXSERV, NI_NUMERICSERV);
     if (s == 0)
-      printf("Received %ld bytes from %s:%s\n", (long)nread, conn_info2.host,
-             conn_info2.port);
+      printf("Received %ld bytes from %s:%s\n", (long)nread, host, service);
     else
       fprintf(stderr, "getnameinfo: %s\n", gai_strerror(s));
 
-    ssize_t r_sto = sendto(conn_inf.sockfd, buf, nread, 0,
+    ssize_t r_sto = sendto(conn_inf.server_fd, buf, nread, 0,
                            (struct sockaddr *)&peer_addr, peer_addr_len);
 
     if (strncasecmp(buf, "exit", 4) == 0) {
       puts("Received 'exit'");
-      close(conn_inf.sockfd);
+      close(conn_inf.server_fd);
       return 0;
     }
 
     if (r_sto != nread) {
       fputs("Error sending response\n", stderr);
-      close(conn_inf.sockfd);
+      close(conn_inf.server_fd);
       return r_sto;
     }
   }

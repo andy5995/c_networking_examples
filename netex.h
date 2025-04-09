@@ -1,30 +1,26 @@
 #include <netdb.h>
 
-#define PORT "61357"
 #define BACKLOG 10
+extern const char *default_port;
 
 typedef struct {
   char *host;
-  char *port;
+  const char *port;
   int sockfd;
-  int connfd;
+  int server_fd;
 } conn_info;
 
 extern conn_info conn_inf;
-
-struct conn_info2 {
-  char host[NI_MAXHOST];
-  char port[NI_MAXSERV];
-  int sockfd;
-};
 
 int get_tcp_client_sockfd(void);
 
 int get_tcp_server_sockfd(void);
 
-int get_udp_server_sockfd(void);
+void assign_udp_server_fd(void);
 
-void parse_server_opts(const int argc, char *argv[], struct conn_info2 *x);
-void parse_client_opts(const int argc, char *argv[], struct conn_info2 *x);
+void parse_server_opts(const int argc, char *argv[]);
+void parse_client_opts(const int argc, char *argv[]);
 
-int setup_tcp_dual_stack_server();
+void assign_tcp_dual_stack_server_fd(void);
+
+void get_user_input(char *buffer, size_t size, const char *prompt);

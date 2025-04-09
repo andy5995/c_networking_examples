@@ -9,7 +9,10 @@
 
 #include "netex.h"
 
-conn_info conn_inf = {"127.0.0.1", "8080", 0, 0};
+const char *default_port = "61357";
+
+conn_info conn_inf = {
+    .host = NULL, .port = NULL, .sockfd = -1, .server_fd = -1};
 
 /* show_ip
  * only needed to demonstrate how to get and display the IP.
@@ -119,12 +122,12 @@ int get_tcp_server_sockfd(void) {
   return 0;
 }
 
-int get_udp_server_sockfd(void) {
+void assign_udp_server_fd() {
   struct addrinfo hints;
   struct addrinfo *result, *rp;
 
   memset(&hints, 0, sizeof(struct addrinfo));
-  hints.ai_family = AF_UNSPEC;    /* Allow IPv4 or IPv6 */
+  hints.ai_family = AF_INET6;     /* Allow IPv4 or IPv6 */
   hints.ai_socktype = SOCK_DGRAM; /* Datagram socket */
   hints.ai_flags = AI_PASSIVE;    /* For wildcard IP address */
   hints.ai_protocol = 0;          /* Any protocol */
@@ -132,10 +135,10 @@ int get_udp_server_sockfd(void) {
   hints.ai_addr = NULL;
   hints.ai_next = NULL;
 
-  int s = getaddrinfo(NULL, conn_inf.port, &hints, &result);
+  int s = getaddrinfo(conn_inf.host, conn_inf.port, &hints, &result);
   if (s != 0) {
     fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(s));
-    return -1;
+    exit(EXIT_FAILURE);
   }
 
   /* getaddrinfo() returns a list of address structures.
@@ -145,51 +148,59 @@ int get_udp_server_sockfd(void) {
   for (rp = result; rp != NULL; rp = rp->ai_next) {
     show_ip(rp);
 
-    conn_inf.sockfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
-    if (conn_inf.sockfd == -1)
+    conn_inf.server_fd =
+        socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+    if (conn_inf.server_fd == -1)
       continue;
 
-    if (bind(conn_inf.sockfd, rp->ai_addr, rp->ai_addrlen) == 0)
+    int optval = 0;
+    if (setsockopt(conn_inf.server_fd, IPPROTO_IPV6, IPV6_V6ONLY, &optval,
+                   sizeof(optval)) < 0)
+      perror("setsockopt IPV6_V6ONLY");
+
+    if (bind(conn_inf.server_fd, rp->ai_addr, rp->ai_addrlen) == 0)
       break; /* Success */
 
-    close(conn_inf.sockfd);
+    close(conn_inf.server_fd);
   }
 
   if (rp == NULL) { /* No address succeeded */
     fputs("Could not bind\n", stderr);
-    return -1;
+    exit(EXIT_FAILURE);
   }
 
   freeaddrinfo(result); /* No longer needed */
-  return 0;
+  return;
 }
 
 static void show_server_usage(const char *prgname) {
   printf("Usage: %s [OPTIONS]\n\n", prgname);
   printf("\
-  -a <host>\n\
-  -p <port> (Default: %s)\n\n",
-         PORT);
+  -p <port> (Optional; Default: %s)\n\n",
+         default_port);
   return;
 }
 
 static void show_client_usage(const char *prgname) {
   printf("Usage: %s [OPTIONS]\n\n", prgname);
   printf("\
-  -p <port> (Default: %s)\n\n",
-         PORT);
+  -a <host>\n\
+  -p <port> (Optional; Default: %s)\n\n",
+         default_port);
   return;
 }
 
-void parse_server_opts(const int argc, char *argv[], struct conn_info2 *x) {
+void parse_server_opts(const int argc, char *argv[]) {
+  conn_inf.port = default_port;
   int opt;
-  *x->host = '\0';
-  *x->port = '\0';
 
   while ((opt = getopt(argc, argv, "p:h")) != -1) {
     switch (opt) {
     case 'p':
-      conn_inf.port = optarg;
+      if (strlen(optarg) < NI_MAXSERV)
+        conn_inf.port = optarg;
+      else
+        fprintf(stderr, "Port exceeds %d characters\n", NI_MAXSERV - 1);
       break;
     case 'h':
     default:
@@ -198,25 +209,27 @@ void parse_server_opts(const int argc, char *argv[], struct conn_info2 *x) {
     }
   }
 
-  if (!*x->port)
-    snprintf(x->port, NI_MAXSERV, "%s", PORT);
-
   return;
 }
 
-void parse_client_opts(const int argc, char *argv[], struct conn_info2 *x) {
+void parse_client_opts(const int argc, char *argv[]) {
+  conn_inf.port = default_port;
   int opt;
-  *x->host = '\0';
-  *x->port = '\0';
 
   while ((opt = getopt(argc, argv, "a:p:h")) != -1) {
     switch (opt) {
     case 'p':
-      snprintf(x->port, NI_MAXSERV, "%s", optarg);
-      conn_inf.port = optarg;
+      if (strlen(optarg) < NI_MAXSERV)
+        conn_inf.port = optarg;
+      else
+        fprintf(stderr, "Port exceeds %d characters\n", NI_MAXSERV - 1);
       break;
     case 'a':
-      snprintf(x->host, NI_MAXHOST, "%s", optarg);
+      if (strlen(optarg) < NI_MAXHOST)
+        conn_inf.host = optarg;
+      else
+        fprintf(stderr, "Address (hostname) exceeds %d characters\n",
+                NI_MAXHOST - 1);
       break;
     case 'h':
     default:
@@ -225,10 +238,7 @@ void parse_client_opts(const int argc, char *argv[], struct conn_info2 *x) {
     }
   }
 
-  if (!*x->port)
-    snprintf(x->port, NI_MAXSERV, "%s", PORT);
-
-  if (!*x->host) {
+  if (!conn_inf.host) {
     fputs("-a <host> is required\n", stderr);
     exit(EXIT_FAILURE);
   }
@@ -236,8 +246,8 @@ void parse_client_opts(const int argc, char *argv[], struct conn_info2 *x) {
   return;
 }
 
-int setup_tcp_dual_stack_server(void) {
-  int server_fd;
+void assign_tcp_dual_stack_server_fd(void) {
+
   struct addrinfo hints, *res, *p;
 
   // Set up hints for dual-stack
@@ -248,43 +258,64 @@ int setup_tcp_dual_stack_server(void) {
   hints.ai_flags = AI_PASSIVE; // Auto-fill IP
 
   // Get address info
-  if (getaddrinfo(NULL, PORT, &hints, &res) != 0) {
+  if (getaddrinfo(conn_inf.host, conn_inf.port, &hints, &res) != 0) {
     perror("getaddrinfo");
-    return 1;
+    exit(EXIT_FAILURE);
   }
 
-  int optval = 0, opt = 1;
   // Create and bind socket
   for (p = res; p != NULL; p = p->ai_next) {
-    server_fd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
-    if (server_fd == -1)
+    conn_inf.server_fd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
+    if (conn_inf.server_fd == -1)
       continue;
 
-    if (setsockopt(server_fd, IPPROTO_IPV6, IPV6_V6ONLY, &optval,
+    int optval = 0, opt = 1;
+    if (setsockopt(conn_inf.server_fd, IPPROTO_IPV6, IPV6_V6ONLY, &optval,
                    sizeof(optval)) < 0)
       perror("setsockopt IPV6_V6ONLY");
 
     // When starting the server immediately after it was killed,
     // prevent the error "Address already in use" when running
     // See https://linux.die.net/man/3/setsockopt for more information.
-    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
+    if (setsockopt(conn_inf.server_fd, SOL_SOCKET, SO_REUSEADDR, &opt,
+                   sizeof(opt)) < 0)
       perror("setsockopt SO_REUSEADDR");
 
-    if (bind(server_fd, p->ai_addr, p->ai_addrlen) == 0)
+    if (bind(conn_inf.server_fd, p->ai_addr, p->ai_addrlen) == 0)
       break; // Success
-    close(server_fd);
+    close(conn_inf.server_fd);
   }
 
   freeaddrinfo(res);
   if (!p) {
     perror("Failed to bind");
-    return 1;
+    exit(EXIT_FAILURE);
   }
 
   // Start listening
-  if (listen(server_fd, BACKLOG) == -1) {
+  if (listen(conn_inf.server_fd, BACKLOG) == -1) {
     perror("listen");
-    return 1;
+    exit(EXIT_FAILURE);
   }
-  return server_fd;
+
+  printf("Server listening on port %s...\n", conn_inf.port);
+  return;
+}
+
+void get_user_input(char *buffer, size_t size, const char *prompt) {
+  if (prompt) {
+    printf("%s", prompt);
+    fflush(stdout);
+  }
+
+  if (fgets(buffer, size, stdin)) {
+    // Remove trailing newline if it exists
+    size_t len = strlen(buffer);
+    if (len > 0 && buffer[len - 1] == '\n') {
+      buffer[len - 1] = '\0';
+    }
+  } else {
+    // fgets failed — clear buffer
+    buffer[0] = '\0';
+  }
 }

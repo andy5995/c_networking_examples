@@ -24,7 +24,8 @@ void handle_client(int client_fd) {
   close(client_fd);
 }
 
-int main() {
+int main(int argc, char *argv[]) {
+  parse_server_opts(argc, argv);
   assign_tcp_dual_stack_server_fd();
 
   while (1) {

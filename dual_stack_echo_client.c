@@ -18,50 +18,12 @@
 #include "netex.h"
 
 int main(int argc, char *argv[]) {
-  char *server_addr = NULL;
-  if (argc == 2)
-    server_addr = argv[1];
-  else {
-    fputs("You must provide the server address.\n", stderr);
-    return 1;
-  }
+  parse_client_opts(argc, argv);
+  assign_tcp_dual_stack_client_fd();
 
-  int client_fd;
-  struct addrinfo hints, *res, *p;
   char buffer[1024];
-
-  // Set up hints for getaddrinfo()
-  memset(&hints, 0, sizeof(hints));
-  hints.ai_family = AF_UNSPEC; // Allow both IPv4 and IPv6
-  hints.ai_socktype = SOCK_STREAM;
-
-  // Get address info
-  if (getaddrinfo(server_addr, conn_inf.port, &hints, &res) != 0) {
-    perror("getaddrinfo");
-    return 1;
-  }
-
-  // Try to connect to one of the results
-  for (p = res; p != NULL; p = p->ai_next) {
-    client_fd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
-    if (client_fd == -1)
-      continue;
-
-    if (connect(client_fd, p->ai_addr, p->ai_addrlen) == 0)
-      break; // Connected successfully
-
-    close(client_fd);
-  }
-
-  freeaddrinfo(res);
-
-  if (!p) {
-    perror("Failed to connect");
-    return 1;
-  }
-
   // Read response from server
-  ssize_t bytes_received = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
+  ssize_t bytes_received = recv(conn_inf.sockfd, buffer, sizeof(buffer) - 1, 0);
   if (bytes_received > 0) {
     buffer[bytes_received] = '\0'; // Null-terminate received data
     printf("Server response: %s", buffer);
@@ -69,6 +31,6 @@ int main(int argc, char *argv[]) {
     perror("recv");
   }
 
-  close(client_fd);
+  close(conn_inf.sockfd);
   return 0;
 }

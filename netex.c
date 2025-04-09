@@ -246,6 +246,41 @@ void parse_client_opts(const int argc, char *argv[]) {
   return;
 }
 
+void assign_tcp_dual_stack_client_fd(void) {
+  struct addrinfo hints, *res, *p;
+
+  // Set up hints for getaddrinfo()
+  memset(&hints, 0, sizeof(hints));
+  hints.ai_family = AF_UNSPEC; // Allow both IPv4 and IPv6
+  hints.ai_socktype = SOCK_STREAM;
+
+  // Get address info
+  if (getaddrinfo(conn_inf.host, conn_inf.port, &hints, &res) != 0) {
+    perror("getaddrinfo");
+    exit(EXIT_FAILURE);
+  }
+
+  // Try to connect to one of the results
+  for (p = res; p != NULL; p = p->ai_next) {
+    conn_inf.sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
+    if (conn_inf.sockfd == -1)
+      continue;
+
+    if (connect(conn_inf.sockfd, p->ai_addr, p->ai_addrlen) == 0)
+      break; // Connected successfully
+
+    close(conn_inf.sockfd);
+  }
+
+  freeaddrinfo(res);
+
+  if (!p) {
+    perror("Failed to connect");
+    exit(EXIT_FAILURE);
+  }
+  return;
+}
+
 void assign_tcp_dual_stack_server_fd(void) {
 
   struct addrinfo hints, *res, *p;

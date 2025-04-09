@@ -21,6 +21,7 @@ void assign_udp_server_fd(void);
 void parse_server_opts(const int argc, char *argv[]);
 void parse_client_opts(const int argc, char *argv[]);
 
+void assign_tcp_dual_stack_client_fd(void);
 void assign_tcp_dual_stack_server_fd(void);
 
 void get_user_input(char *buffer, size_t size, const char *prompt);

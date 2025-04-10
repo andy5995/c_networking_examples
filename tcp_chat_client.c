@@ -82,9 +82,7 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  int res = get_tcp_client_sockfd();
-  if (res < 0)
-    return res;
+  assign_tcp_client_fd();
 
   // function for chat
   func(conn_inf.client_fd);

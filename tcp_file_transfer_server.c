@@ -43,7 +43,7 @@
  *
  */
 static int recv_file(void) {
-  char buff[BUFSIZ];
+  char buff[BUFSIZ] = {0};
   char filename[PATH_MAX];
   char *filename_ptr = filename;
   _Bool have_filename = 0;
@@ -51,10 +51,9 @@ static int recv_file(void) {
   FILE *fp = NULL;
   _Bool f_exists = 0;
   size_t n_bytes_total = 0;
-  memset(buff, 0, sizeof buff);
 
   struct pollfd pfds[1]; // More if you want to monitor more
-  pfds[0].fd = conn_inf.server_fd;
+  pfds[0].fd = conn_inf.client_fd;
   pfds[0].events = POLLIN; // Alert me when I can read() data from this socket
                            // without blocking.
 
@@ -65,7 +64,7 @@ static int recv_file(void) {
       break;
     } else {
       if (pfds[0].revents & POLLIN) {
-        n_bytes_recvd = recv(conn_inf.server_fd, buff, sizeof(buff), 0);
+        n_bytes_recvd = recv(pfds[0].fd, buff, sizeof(buff), 0);
         char *buf_file_dat_ptr = buff;
         if (!have_filename) {
           ssize_t i;
@@ -101,8 +100,7 @@ static int recv_file(void) {
             printf("Receiving '%s'\n", filename);
           }
 
-          if (fwrite(buf_file_dat_ptr, 1, n_bytes_recvd, fp) !=
-              (size_t)n_bytes_recvd) {
+          if (fwrite(buf_file_dat_ptr, 1, n_bytes_recvd, fp) != (size_t)n_bytes_recvd) {
             fputs("Failed to write buff", stderr);
             exit(-1);
           }
@@ -139,8 +137,7 @@ static int recv_file(void) {
   } else {
     if (pfds[0].revents & POLLOUT) {
       snprintf(buff, sizeof buff, "%s %li bytes",
-               f_exists == 0 ? "Received " : "File already exists. Received",
-               n_bytes_total);
+               f_exists == 0 ? "Received " : "File already exists. Received", n_bytes_total);
       puts(buff);
       puts("Sending confirmation to client");
       ssize_t s_r = send(pfds[0].fd, buff, strlen(buff) + 1, 0);
@@ -158,20 +155,20 @@ static int recv_file(void) {
 }
 
 static int accept_connection(void) {
-  get_tcp_server_sockfd();
+  assign_tcp_server_fd();
 
   struct sockaddr_in cli;
   socklen_t len = sizeof(cli);
 
   // Accept the data packet from client and verification
-  conn_inf.server_fd = accept(conn_inf.client_fd, (struct sockaddr *)&cli, &len);
-  // sockfd only needed if more connections are desired
-  if (close(conn_inf.client_fd))
+  conn_inf.client_fd = accept(conn_inf.server_fd, (struct sockaddr *)&cli, &len);
+  // server_fd only needed if more connections are desired
+  if (close(conn_inf.server_fd))
     perror("close() failed");
 
-  if (conn_inf.server_fd < 0) {
+  if (conn_inf.client_fd == -1) {
     perror("accept");
-    return conn_inf.server_fd;
+    return conn_inf.client_fd;
   }
 
   puts("Client connected");
@@ -188,7 +185,7 @@ int main(int argc, char *argv[]) {
 
   int f_exists = recv_file();
 
-  if (close(conn_inf.server_fd))
+  if (close(conn_inf.client_fd))
     perror("close() failed");
 
   return f_exists;

@@ -10,8 +10,7 @@ int main(int argc, char *argv[]) {
 
   struct sockaddr_storage client_addr;
   socklen_t addr_size = sizeof(client_addr);
-  conn_inf.client_fd =
-      accept(conn_inf.server_fd, (struct sockaddr *)&client_addr, &addr_size);
+  conn_inf.client_fd = accept(conn_inf.server_fd, (struct sockaddr *)&client_addr, &addr_size);
   if (conn_inf.client_fd == -1) {
     perror("Client connection failed");
   }
@@ -20,7 +19,7 @@ int main(int argc, char *argv[]) {
   init_sdl_window(&sdl_context, "SDL Server");
 
   pthread_t receiver;
-  run_sdl_loop(sdl_context.renderer, conn_inf.client_fd, CIRCLE, &receiver);
+  run_sdl_loop(sdl_context.renderer, CIRCLE, &receiver);
 
   if (conn_inf.client_fd == -1) {
     if (shutdown(conn_inf.server_fd, SHUT_RDWR) != 0)

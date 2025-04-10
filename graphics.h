@@ -18,7 +18,6 @@ struct sdl_context {
 
 void init_sdl_window(struct sdl_context *sdl_context, const char *title);
 
-void run_sdl_loop(SDL_Renderer *renderer, int client_fd, enum e_shape shape,
-                  pthread_t *receiver);
+void run_sdl_loop(SDL_Renderer *renderer, enum e_shape shape, pthread_t *receiver);
 
 void do_sdl_cleanup(struct sdl_context *sdl_context);

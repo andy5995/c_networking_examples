@@ -31,8 +31,7 @@ int main(int argc, char *argv[]) {
   while (1) {
     struct sockaddr_storage client_addr;
     socklen_t addr_size = sizeof(client_addr);
-    conn_inf.client_fd =
-        accept(conn_inf.server_fd, (struct sockaddr *)&client_addr, &addr_size);
+    conn_inf.client_fd = accept(conn_inf.server_fd, (struct sockaddr *)&client_addr, &addr_size);
     if (conn_inf.client_fd == -1)
       continue;
 

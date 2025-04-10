@@ -80,7 +80,7 @@ int main(int argc, char *argv[]) {
   freeaddrinfo(result); /* No longer needed */
 
   for (;;) {
-    char buf[MAX_BUF_ECHO_MSG] = { 0 };
+    char buf[MAX_BUF_ECHO_MSG] = {0};
     get_user_input(buf, sizeof buf, "Enter a string:\n");
     socklen_t len = strlen(buf);
 
@@ -101,7 +101,6 @@ int main(int argc, char *argv[]) {
       close(conn_inf.client_fd);
       break;
     }
-
   }
 
   return 0;

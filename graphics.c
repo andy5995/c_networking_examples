@@ -1,9 +1,9 @@
 #include <pthread.h>
 
 #include "graphics.h"
+#include "netex.h"
 
 struct peer_state {
-  int sockfd;
   int x;
   int y;
   enum e_shape do_shape;
@@ -12,15 +12,11 @@ struct peer_state {
 void init_sdl_window(struct sdl_context *sdl_context, const char *title) {
   SDL_Init(SDL_INIT_VIDEO);
   const char *client = strstr(title, "Client");
-  int win_pos_x =
-      (client != NULL) ? WINDOW_WIDTH / 2 + 10 : SDL_WINDOWPOS_CENTERED;
-  int win_pos_y =
-      (client != NULL) ? WINDOW_HEIGHT / 2 + 10 : SDL_WINDOWPOS_CENTERED;
+  int win_pos_x = (client != NULL) ? WINDOW_WIDTH / 2 + 10 : SDL_WINDOWPOS_CENTERED;
+  int win_pos_y = (client != NULL) ? WINDOW_HEIGHT / 2 + 10 : SDL_WINDOWPOS_CENTERED;
   sdl_context->window =
-      SDL_CreateWindow(title, win_pos_x, win_pos_y, WINDOW_WIDTH, WINDOW_HEIGHT,
-                       SDL_WINDOW_SHOWN);
-  sdl_context->renderer =
-      SDL_CreateRenderer(sdl_context->window, -1, SDL_RENDERER_ACCELERATED);
+      SDL_CreateWindow(title, win_pos_x, win_pos_y, WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_SHOWN);
+  sdl_context->renderer = SDL_CreateRenderer(sdl_context->window, -1, SDL_RENDERER_ACCELERATED);
 
   // Draw white background
   SDL_SetRenderDrawColor(sdl_context->renderer, 255, 255, 255, 255);
@@ -29,8 +25,7 @@ void init_sdl_window(struct sdl_context *sdl_context, const char *title) {
   return;
 }
 
-static void draw_filled_area(SDL_Renderer *renderer, int x, int y, int r,
-                             enum e_shape shape) {
+static void draw_filled_area(SDL_Renderer *renderer, int x, int y, int r, enum e_shape shape) {
   SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
   for (int w = 0; w < r * 2; w++) {
     for (int h = 0; h < r * 2; h++) {
@@ -50,7 +45,7 @@ static void *recv_thread(void *arg) {
   struct peer_state *args = (struct peer_state *)arg;
   char buffer[BUFFER_SIZE];
   while (1) {
-    ssize_t bytes_received = recv(args->sockfd, buffer, BUFFER_SIZE - 1, 0);
+    ssize_t bytes_received = recv(conn_inf.client_fd, buffer, BUFFER_SIZE - 1, 0);
     if (bytes_received <= 0) {
       if (bytes_received == -1)
         perror("recv");
@@ -70,12 +65,10 @@ static void *recv_thread(void *arg) {
   return NULL;
 }
 
-void run_sdl_loop(SDL_Renderer *renderer, int client_fd, enum e_shape shape,
-                  pthread_t *receiver) {
+void run_sdl_loop(SDL_Renderer *renderer, enum e_shape shape, pthread_t *receiver) {
   int x = WINDOW_WIDTH / 2, y = WINDOW_HEIGHT / 2;
 
   struct peer_state peer_state = {
-      .sockfd = client_fd,
       .x = WINDOW_WIDTH / 2,
       .y = WINDOW_HEIGHT / 2,
       .do_shape = shape,
@@ -85,7 +78,7 @@ void run_sdl_loop(SDL_Renderer *renderer, int client_fd, enum e_shape shape,
 
   char message[64];
   int len = snprintf(message, sizeof(message), "%d %d %d\n", x, y, shape);
-  if (send(client_fd, message, len, 0) == -1)
+  if (send(conn_inf.client_fd, message, len, 0) == -1)
     perror("send");
 
   int running = 1;
@@ -99,7 +92,7 @@ void run_sdl_loop(SDL_Renderer *renderer, int client_fd, enum e_shape shape,
         x = event.button.x;
         y = event.button.y;
         len = snprintf(message, sizeof(message), "%d %d %d\n", x, y, shape);
-        if (send(client_fd, message, len, 0) == -1) {
+        if (send(conn_inf.client_fd, message, len, 0) == -1) {
           perror("send");
         }
       }
@@ -109,8 +102,7 @@ void run_sdl_loop(SDL_Renderer *renderer, int client_fd, enum e_shape shape,
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
     SDL_RenderClear(renderer);
 
-    draw_filled_area(renderer, peer_state.x, peer_state.y, CIRCLE_RADIUS,
-                     peer_state.do_shape);
+    draw_filled_area(renderer, peer_state.x, peer_state.y, CIRCLE_RADIUS, peer_state.do_shape);
     draw_filled_area(renderer, x, y, CIRCLE_RADIUS, shape);
 
     SDL_RenderPresent(renderer);

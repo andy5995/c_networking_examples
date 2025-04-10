@@ -49,8 +49,7 @@ void *get_in_addr(struct sockaddr *sa) {
 }
 
 // Add a new file descriptor to the set
-void add_to_pfds(struct pollfd *pfds[], int newfd, int *fd_count,
-                 int *fd_size) {
+void add_to_pfds(struct pollfd *pfds[], int newfd, int *fd_count, int *fd_size) {
   // If we don't have room, add more space in the pfds array
   if (*fd_count == *fd_size) {
     *fd_size *= 2; // Double it
@@ -82,10 +81,7 @@ int main(int argc, char *argv[]) {
   struct sockaddr_storage remoteaddr; // Client address
   socklen_t addrlen;
 
-  if (get_tcp_server_sockfd() < 0) {
-    fputs("Error\n", stderr);
-    return -1;
-  }
+  assign_tcp_server_fd();
 
   // Start off with room for 5 connections
   // (We'll realloc as necessary)
@@ -123,8 +119,7 @@ int main(int argc, char *argv[]) {
           addrlen = sizeof remoteaddr;
 
           // Newly accept()ed socket descriptor
-          int newfd =
-              accept(conn_inf.client_fd, (struct sockaddr *)&remoteaddr, &addrlen);
+          int newfd = accept(conn_inf.client_fd, (struct sockaddr *)&remoteaddr, &addrlen);
 
           if (newfd == -1) {
             perror("accept");
@@ -134,8 +129,7 @@ int main(int argc, char *argv[]) {
             char remoteIP[INET6_ADDRSTRLEN];
             printf("pollserver: new connection from %s on "
                    "socket %d\n",
-                   inet_ntop(remoteaddr.ss_family,
-                             get_in_addr((struct sockaddr *)&remoteaddr),
+                   inet_ntop(remoteaddr.ss_family, get_in_addr((struct sockaddr *)&remoteaddr),
                              remoteIP, INET6_ADDRSTRLEN),
                    newfd);
           }

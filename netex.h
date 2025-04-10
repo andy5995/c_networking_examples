@@ -13,9 +13,9 @@ typedef struct {
 
 extern conn_info conn_inf;
 
-int get_tcp_client_sockfd(void);
+void assign_tcp_client_fd(void);
 
-int get_tcp_server_sockfd(void);
+void assign_tcp_server_fd(void);
 
 void assign_udp_server_fd(void);
 

@@ -68,10 +68,7 @@ void func() {
 int main(int argc, char *argv[]) {
   parse_server_opts(argc, argv);
 
-  if (get_tcp_server_sockfd() < 0) {
-    fputs("Error\n", stderr);
-    return -1;
-  }
+  assign_tcp_server_fd();
 
   struct sockaddr_in cli;
   socklen_t len = sizeof(cli);

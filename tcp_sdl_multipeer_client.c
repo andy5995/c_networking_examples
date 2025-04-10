@@ -13,7 +13,7 @@ int main(int argc, char *argv[]) {
   init_sdl_window(&sdl_context, "SDL Client");
 
   pthread_t receiver;
-  run_sdl_loop(sdl_context.renderer, conn_inf.client_fd, SQUARE, &receiver);
+  run_sdl_loop(sdl_context.renderer, SQUARE, &receiver);
 
   if (shutdown(conn_inf.client_fd, SHUT_RDWR) != 0)
     perror("shutdown");

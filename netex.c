@@ -11,8 +11,7 @@
 
 const char *default_port = "61357";
 
-conn_info conn_inf = {
-    .host = NULL, .port = NULL, .client_fd = -1, .server_fd = -1};
+conn_info conn_inf = {.host = NULL, .port = NULL, .client_fd = -1, .server_fd = -1};
 
 /* show_ip
  * only needed to demonstrate how to get and display the IP.
@@ -40,7 +39,7 @@ static void show_ip(struct addrinfo *rp) {
   return;
 }
 
-int get_tcp_client_sockfd(void) {
+void assign_tcp_client_fd(void) {
   struct addrinfo hints;
   struct addrinfo *result, *rp;
 
@@ -54,14 +53,9 @@ int get_tcp_client_sockfd(void) {
   int s = getaddrinfo(conn_inf.host, conn_inf.port, &hints, &result);
   if (s != 0) {
     fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(s));
-    return -1;
+    exit(EXIT_FAILURE);
   }
 
-  /* getaddrinfo() returns a list of address structures.
-     Try each address until we successfully connect(2).
-     If socket(2) (or connect(2)) fails, we (close the socket
-     and) try the next address. */
-  conn_inf.client_fd = -1;
   for (rp = result; rp != NULL; rp = rp->ai_next) {
     show_ip(rp);
     conn_inf.client_fd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
@@ -75,27 +69,31 @@ int get_tcp_client_sockfd(void) {
     perror("connect");
     if (close(conn_inf.client_fd) != 0)
       perror("close");
-    return -1;
+    exit(EXIT_FAILURE);
   }
 
   freeaddrinfo(result); /* No longer needed */
 
   if (conn_inf.client_fd == -1) {
     fputs("Unable to create socket\n", stderr);
-    return -1;
+    exit(EXIT_FAILURE);
   }
-  return 0;
+  return;
 }
 
-int get_tcp_server_sockfd(void) {
+void assign_tcp_server_fd(void) {
   struct sockaddr_in servaddr;
 
-  conn_inf.client_fd = socket(AF_INET, SOCK_STREAM, 0);
-  if (conn_inf.client_fd == -1) {
+  conn_inf.server_fd = socket(AF_INET, SOCK_STREAM, 0);
+  if (conn_inf.server_fd == -1) {
     perror("socket");
-    return -1;
-  } else
+    exit(EXIT_FAILURE);
+  } else {
     puts("Socket successfully created");
+    int opt = 1;
+    if (setsockopt(conn_inf.server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
+      perror("setsockopt SO_REUSEADDR");
+  }
 
   memset(&servaddr, 0, sizeof servaddr);
 
@@ -104,22 +102,21 @@ int get_tcp_server_sockfd(void) {
   servaddr.sin_port = htons(atoi(conn_inf.port));
 
   // Binding newly created socket to given IP and verification
-  if ((bind(conn_inf.client_fd, (struct sockaddr *)&servaddr, sizeof(servaddr))) !=
-      0) {
+  if ((bind(conn_inf.server_fd, (struct sockaddr *)&servaddr, sizeof(servaddr))) == -1) {
     perror("bind");
-    close(conn_inf.client_fd);
-    return -1;
+    close(conn_inf.server_fd);
+    exit(EXIT_FAILURE);
   }
 
   printf("Socket successfully binded..\n");
   // Now server is ready to listen and verification
-  if ((listen(conn_inf.client_fd, 5)) != 0) {
+  if ((listen(conn_inf.server_fd, 5)) != 0) {
     perror("listen");
-    close(conn_inf.client_fd);
-    return -1;
+    close(conn_inf.server_fd);
+    exit(EXIT_FAILURE);
   } else
     printf("Server listening on port %s...\n", conn_inf.port);
-  return 0;
+  return;
 }
 
 void assign_udp_server_fd() {
@@ -148,14 +145,12 @@ void assign_udp_server_fd() {
   for (rp = result; rp != NULL; rp = rp->ai_next) {
     show_ip(rp);
 
-    conn_inf.server_fd =
-        socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+    conn_inf.server_fd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
     if (conn_inf.server_fd == -1)
       continue;
 
     int optval = 0;
-    if (setsockopt(conn_inf.server_fd, IPPROTO_IPV6, IPV6_V6ONLY, &optval,
-                   sizeof(optval)) < 0)
+    if (setsockopt(conn_inf.server_fd, IPPROTO_IPV6, IPV6_V6ONLY, &optval, sizeof(optval)) < 0)
       perror("setsockopt IPV6_V6ONLY");
 
     if (bind(conn_inf.server_fd, rp->ai_addr, rp->ai_addrlen) == 0)
@@ -295,15 +290,13 @@ void assign_tcp_dual_stack_server_fd(void) {
       continue;
 
     int optval = 0, opt = 1;
-    if (setsockopt(conn_inf.server_fd, IPPROTO_IPV6, IPV6_V6ONLY, &optval,
-                   sizeof(optval)) < 0)
+    if (setsockopt(conn_inf.server_fd, IPPROTO_IPV6, IPV6_V6ONLY, &optval, sizeof(optval)) < 0)
       perror("setsockopt IPV6_V6ONLY");
 
     // When starting the server immediately after it was killed,
     // prevent the error "Address already in use" when running
     // See https://linux.die.net/man/3/setsockopt for more information.
-    if (setsockopt(conn_inf.server_fd, SOL_SOCKET, SO_REUSEADDR, &opt,
-                   sizeof(opt)) < 0)
+    if (setsockopt(conn_inf.server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
       perror("setsockopt SO_REUSEADDR");
 
     if (bind(conn_inf.server_fd, p->ai_addr, p->ai_addrlen) == 0)

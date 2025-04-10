@@ -37,7 +37,7 @@
 
 #include "netex.h"
 
-int func(int sockfd, const char *file) {
+int func(const char *file) {
   FILE *fp = fopen(file, "rb");
   if (fp == NULL) {
     strerror(errno);
@@ -54,14 +54,13 @@ int func(int sockfd, const char *file) {
 
   // basename() may modify the contents of 'file', so create a copy
   char file_orig[PATH_MAX];
-  if ((size_t)snprintf(file_orig, sizeof file_orig, "%s", file) >=
-      sizeof file_orig)
+  if ((size_t)snprintf(file_orig, sizeof file_orig, "%s", file) >= sizeof file_orig)
     fputs("filename truncated", stderr);
 
   char *file_basename = basename(file_orig);
   printf("Sending %s...\n", file);
 
-  send(sockfd, file_basename, strlen(file_basename) + 1, 0);
+  send(conn_inf.client_fd, file_basename, strlen(file_basename) + 1, 0);
   char buff[BUFSIZ];
   size_t n_bytes_total = 0;
   do {
@@ -71,7 +70,7 @@ int func(int sockfd, const char *file) {
       fputs("error: fread", stderr);
       exit(-1);
     }
-    send(sockfd, buff, num, 0);
+    send(conn_inf.client_fd, buff, num, 0);
     n_bytes_total += num;
     printf("bytes sent: %li\r", n_bytes_total);
 
@@ -81,7 +80,7 @@ int func(int sockfd, const char *file) {
   memset(buff, 0, sizeof buff);
   fputs("Server replied: ", stdout);
   int n_bytes_recvd;
-  while ((n_bytes_recvd = recv(sockfd, buff, sizeof(buff), 0)) != 0) {
+  while ((n_bytes_recvd = recv(conn_inf.client_fd, buff, sizeof(buff), 0)) != 0) {
     fputs(buff, stdout);
     *buff = '\0';
   }
@@ -133,11 +132,9 @@ int main(int argc, char *argv[]) {
     exit(EXIT_FAILURE);
   }
 
-  int res = get_tcp_client_sockfd();
-  if (res < 0)
-    return res;
+  assign_tcp_client_fd();
 
-  int f_exists = func(conn_inf.client_fd, file);
+  int f_exists = func(file);
 
   puts("\nClosing socket");
   if (close(conn_inf.client_fd) != 0)

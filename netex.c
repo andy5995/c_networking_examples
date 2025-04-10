@@ -122,7 +122,7 @@ void assign_tcp_server_fd(void) {
   return;
 }
 
-void assign_udp_server_fd() {
+void assign_udp_server_fd(void) {
   struct addrinfo hints;
   struct addrinfo *result, *rp;
 

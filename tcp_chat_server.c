@@ -37,7 +37,7 @@ https://www.geeksforgeeks.org/tcp-server-client-implementation-in-c/
 #include "netex.h"
 
 // Function designed for chat between client and server.
-static void func() {
+static void func(void) {
   char buff[BUFSIZ];
   int n;
   // infinite loop for chat

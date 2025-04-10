@@ -26,18 +26,15 @@
 
 */
 
-#include "netex.h"
 #include <errno.h>
 #include <limits.h> // PATH_MAX
-#include <netdb.h>
-#include <netinet/in.h>
 #include <poll.h>
 #include <stdio.h>  // BUFSIZ
 #include <stdlib.h> // exit()
 #include <string.h>
-#include <sys/socket.h>
-#include <sys/types.h>
 #include <unistd.h>
+
+#include "netex.h"
 
 /*
  * recv_file

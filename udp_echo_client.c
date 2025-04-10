@@ -28,11 +28,8 @@
 
 */
 
-#include <netdb.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/socket.h>
-#include <sys/types.h>
 #include <unistd.h>
 
 #include "netex.h"
@@ -84,23 +81,25 @@ int main(int argc, char *argv[]) {
 
   freeaddrinfo(result); /* No longer needed */
 
-  char buffer[max_msg_size];
-  *buffer = '\0';
-  get_user_input(buffer, max_msg_size, "Enter a string:\n");
-  socklen_t len = strlen(buffer);
+  for (;;) {
+    char buffer[max_msg_size];
+    *buffer = '\0';
+    get_user_input(buffer, max_msg_size, "Enter a string:\n");
+    socklen_t len = strlen(buffer);
 
-  if (write(conn_inf.sockfd, buffer, len) != len) {
-    fputs("partial/failed write\n", stderr);
-    return -1;
+    if (write(conn_inf.sockfd, buffer, len) != len) {
+      fputs("partial/failed write\n", stderr);
+      return -1;
+    }
+
+    nread = read(conn_inf.sockfd, buf, max_msg_size);
+    if (nread == -1) {
+      perror("read");
+      return -1;
+    }
+
+    printf("Received %ld bytes: %s\n", (long)nread, buf);
   }
-
-  nread = read(conn_inf.sockfd, buf, max_msg_size);
-  if (nread == -1) {
-    perror("read");
-    return -1;
-  }
-
-  printf("Received %ld bytes: %s\n", (long)nread, buf);
 
   return 0;
 }

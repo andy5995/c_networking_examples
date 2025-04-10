@@ -164,9 +164,9 @@ static int accept_connection(void) {
   socklen_t len = sizeof(cli);
 
   // Accept the data packet from client and verification
-  conn_inf.server_fd = accept(conn_inf.sockfd, (struct sockaddr *)&cli, &len);
+  conn_inf.server_fd = accept(conn_inf.client_fd, (struct sockaddr *)&cli, &len);
   // sockfd only needed if more connections are desired
-  if (close(conn_inf.sockfd))
+  if (close(conn_inf.client_fd))
     perror("close() failed");
 
   if (conn_inf.server_fd < 0) {

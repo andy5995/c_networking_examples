@@ -17,7 +17,6 @@ extra_flags = [
   '-Werror=odr',
   '-Werror=lto-type-mismatch',
   '-Werror=strict-aliasing',
-  '-Wunused-result'
   ]
 
 add_project_arguments(cc.get_supported_arguments(extra_flags), language: 'c')

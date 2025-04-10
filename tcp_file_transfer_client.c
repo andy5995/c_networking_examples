@@ -137,10 +137,10 @@ int main(int argc, char *argv[]) {
   if (res < 0)
     return res;
 
-  int f_exists = func(conn_inf.sockfd, file);
+  int f_exists = func(conn_inf.client_fd, file);
 
   puts("\nClosing socket");
-  if (close(conn_inf.sockfd) != 0)
+  if (close(conn_inf.client_fd) != 0)
     perror("close() failed");
 
   return f_exists;

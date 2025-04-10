@@ -13,13 +13,13 @@ int main(int argc, char *argv[]) {
   init_sdl_window(&sdl_context, "SDL Client");
 
   pthread_t receiver;
-  run_sdl_loop(sdl_context.renderer, conn_inf.sockfd, SQUARE, &receiver);
+  run_sdl_loop(sdl_context.renderer, conn_inf.client_fd, SQUARE, &receiver);
 
-  if (shutdown(conn_inf.sockfd, SHUT_RDWR) != 0)
-    perror("shutdown:");
+  if (shutdown(conn_inf.client_fd, SHUT_RDWR) != 0)
+    perror("shutdown");
 
-  if (close(conn_inf.sockfd) != 0)
-    perror("close:");
+  if (close(conn_inf.client_fd) != 0)
+    perror("close");
   pthread_join(receiver, NULL);
 
   do_sdl_cleanup(&sdl_context);

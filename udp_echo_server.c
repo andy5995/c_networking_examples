@@ -42,9 +42,9 @@ int main(int argc, char *argv[]) {
   /* Read datagrams and echo them back to sender */
   for (;;) {
     struct sockaddr_storage peer_addr;
-    char buf[BUFSIZ];
+    char buf[MAX_BUF_ECHO_MSG] = { 0 };
     socklen_t peer_addr_len = sizeof(struct sockaddr_storage);
-    ssize_t nread = recvfrom(conn_inf.server_fd, buf, BUFSIZ, 0,
+    ssize_t nread = recvfrom(conn_inf.server_fd, buf, sizeof buf, 0,
                              (struct sockaddr *)&peer_addr, &peer_addr_len);
 
     if (nread == -1) {

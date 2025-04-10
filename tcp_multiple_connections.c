@@ -98,7 +98,7 @@ int main(int argc, char *argv[]) {
   }
 
   // Add the listener to set
-  pfds[0].fd = conn_inf.sockfd;
+  pfds[0].fd = conn_inf.client_fd;
   pfds[0].events = POLLIN; // Report ready to read on incoming connection
 
   fd_count = 1; // For the listener
@@ -118,13 +118,13 @@ int main(int argc, char *argv[]) {
       // Check if someone's ready to read
       if (pfds[i].revents & POLLIN) { // We got one!!
 
-        if (pfds[i].fd == conn_inf.sockfd) {
+        if (pfds[i].fd == conn_inf.client_fd) {
           // If listener is ready to read, handle new connection
           addrlen = sizeof remoteaddr;
 
           // Newly accept()ed socket descriptor
           int newfd =
-              accept(conn_inf.sockfd, (struct sockaddr *)&remoteaddr, &addrlen);
+              accept(conn_inf.client_fd, (struct sockaddr *)&remoteaddr, &addrlen);
 
           if (newfd == -1) {
             perror("accept");
@@ -167,7 +167,7 @@ int main(int argc, char *argv[]) {
 
               // Except the listener and ourselves
               // Except the listener and ourselves
-              if (dest_fd != conn_inf.sockfd && dest_fd != sender_fd) {
+              if (dest_fd != conn_inf.client_fd && dest_fd != sender_fd) {
                 if (send(dest_fd, buf, nbytes, 0) == -1) {
                   perror("send");
                 }

@@ -1,12 +1,13 @@
 #include <netdb.h>
 
 #define BACKLOG 10
+#define MAX_BUF_ECHO_MSG 512
 extern const char *default_port;
 
 typedef struct {
   char *host;
   const char *port;
-  int sockfd;
+  int client_fd;
   int server_fd;
 } conn_info;
 

@@ -41,8 +41,6 @@ int main(int argc, char *argv[]) {
   struct addrinfo *result, *rp;
   int s;
   ssize_t nread;
-  socklen_t max_msg_size = 1024;
-  char buf[max_msg_size];
 
   /* Obtain address(es) matching host/port */
 
@@ -64,14 +62,14 @@ int main(int argc, char *argv[]) {
      and) try the next address. */
 
   for (rp = result; rp != NULL; rp = rp->ai_next) {
-    conn_inf.sockfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
-    if (conn_inf.sockfd == -1)
+    conn_inf.client_fd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+    if (conn_inf.client_fd == -1)
       continue;
 
-    if (connect(conn_inf.sockfd, rp->ai_addr, rp->ai_addrlen) != -1)
+    if (connect(conn_inf.client_fd, rp->ai_addr, rp->ai_addrlen) != -1)
       break; /* Success */
 
-    close(conn_inf.sockfd);
+    close(conn_inf.client_fd);
   }
 
   if (rp == NULL) { /* No address succeeded */
@@ -82,23 +80,28 @@ int main(int argc, char *argv[]) {
   freeaddrinfo(result); /* No longer needed */
 
   for (;;) {
-    char buffer[max_msg_size];
-    *buffer = '\0';
-    get_user_input(buffer, max_msg_size, "Enter a string:\n");
-    socklen_t len = strlen(buffer);
+    char buf[MAX_BUF_ECHO_MSG] = { 0 };
+    get_user_input(buf, sizeof buf, "Enter a string:\n");
+    socklen_t len = strlen(buf);
 
-    if (write(conn_inf.sockfd, buffer, len) != len) {
+    if (write(conn_inf.client_fd, buf, len) != len) {
       fputs("partial/failed write\n", stderr);
       return -1;
     }
 
-    nread = read(conn_inf.sockfd, buf, max_msg_size);
+    nread = read(conn_inf.client_fd, buf, sizeof buf);
     if (nread == -1) {
       perror("read");
       return -1;
     }
 
-    printf("Received %ld bytes: %s\n", (long)nread, buf);
+    printf("Received %ld bytes: %s\n\n", (long)nread, buf);
+
+    if (strncasecmp(buf, "exit", 4) == 0) {
+      close(conn_inf.client_fd);
+      break;
+    }
+
   }
 
   return 0;

@@ -23,7 +23,7 @@ int main(int argc, char *argv[]) {
 
   char buffer[1024];
   // Read response from server
-  ssize_t bytes_received = recv(conn_inf.sockfd, buffer, sizeof(buffer) - 1, 0);
+  ssize_t bytes_received = recv(conn_inf.client_fd, buffer, sizeof(buffer) - 1, 0);
   if (bytes_received > 0) {
     buffer[bytes_received] = '\0'; // Null-terminate received data
     printf("Server response: %s", buffer);
@@ -31,6 +31,6 @@ int main(int argc, char *argv[]) {
     perror("recv");
   }
 
-  close(conn_inf.sockfd);
+  close(conn_inf.client_fd);
   return 0;
 }

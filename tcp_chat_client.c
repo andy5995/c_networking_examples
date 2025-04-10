@@ -87,8 +87,8 @@ int main(int argc, char *argv[]) {
     return res;
 
   // function for chat
-  func(conn_inf.sockfd);
+  func(conn_inf.client_fd);
 
   // close the socket
-  return close(conn_inf.sockfd);
+  return close(conn_inf.client_fd);
 }

@@ -53,7 +53,7 @@ static void *recv_thread(void *arg) {
     ssize_t bytes_received = recv(args->sockfd, buffer, BUFFER_SIZE - 1, 0);
     if (bytes_received <= 0) {
       if (bytes_received == -1)
-        perror("recv:");
+        perror("recv");
       break;
     }
 
@@ -86,7 +86,7 @@ void run_sdl_loop(SDL_Renderer *renderer, int client_fd, enum e_shape shape,
   char message[64];
   int len = snprintf(message, sizeof(message), "%d %d %d\n", x, y, shape);
   if (send(client_fd, message, len, 0) == -1)
-    perror("send:");
+    perror("send");
 
   int running = 1;
   while (running) {
@@ -100,7 +100,7 @@ void run_sdl_loop(SDL_Renderer *renderer, int client_fd, enum e_shape shape,
         y = event.button.y;
         len = snprintf(message, sizeof(message), "%d %d %d\n", x, y, shape);
         if (send(client_fd, message, len, 0) == -1) {
-          perror("send:");
+          perror("send");
         }
       }
     }

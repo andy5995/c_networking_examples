@@ -12,7 +12,7 @@
 const char *default_port = "61357";
 
 conn_info conn_inf = {
-    .host = NULL, .port = NULL, .sockfd = -1, .server_fd = -1};
+    .host = NULL, .port = NULL, .client_fd = -1, .server_fd = -1};
 
 /* show_ip
  * only needed to demonstrate how to get and display the IP.
@@ -61,26 +61,26 @@ int get_tcp_client_sockfd(void) {
      Try each address until we successfully connect(2).
      If socket(2) (or connect(2)) fails, we (close the socket
      and) try the next address. */
-  conn_inf.sockfd = -1;
+  conn_inf.client_fd = -1;
   for (rp = result; rp != NULL; rp = rp->ai_next) {
     show_ip(rp);
-    conn_inf.sockfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
-    if (conn_inf.sockfd == -1)
+    conn_inf.client_fd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+    if (conn_inf.client_fd == -1)
       continue;
 
-    if (connect(conn_inf.sockfd, rp->ai_addr, rp->ai_addrlen) == 0) {
+    if (connect(conn_inf.client_fd, rp->ai_addr, rp->ai_addrlen) == 0) {
       printf("Connected to %s\n", conn_inf.host);
       break;
     }
     perror("connect");
-    if (close(conn_inf.sockfd) != 0)
+    if (close(conn_inf.client_fd) != 0)
       perror("close");
     return -1;
   }
 
   freeaddrinfo(result); /* No longer needed */
 
-  if (conn_inf.sockfd == -1) {
+  if (conn_inf.client_fd == -1) {
     fputs("Unable to create socket\n", stderr);
     return -1;
   }
@@ -90,8 +90,8 @@ int get_tcp_client_sockfd(void) {
 int get_tcp_server_sockfd(void) {
   struct sockaddr_in servaddr;
 
-  conn_inf.sockfd = socket(AF_INET, SOCK_STREAM, 0);
-  if (conn_inf.sockfd == -1) {
+  conn_inf.client_fd = socket(AF_INET, SOCK_STREAM, 0);
+  if (conn_inf.client_fd == -1) {
     perror("socket");
     return -1;
   } else
@@ -104,18 +104,18 @@ int get_tcp_server_sockfd(void) {
   servaddr.sin_port = htons(atoi(conn_inf.port));
 
   // Binding newly created socket to given IP and verification
-  if ((bind(conn_inf.sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr))) !=
+  if ((bind(conn_inf.client_fd, (struct sockaddr *)&servaddr, sizeof(servaddr))) !=
       0) {
     perror("bind");
-    close(conn_inf.sockfd);
+    close(conn_inf.client_fd);
     return -1;
   }
 
   printf("Socket successfully binded..\n");
   // Now server is ready to listen and verification
-  if ((listen(conn_inf.sockfd, 5)) != 0) {
+  if ((listen(conn_inf.client_fd, 5)) != 0) {
     perror("listen");
-    close(conn_inf.sockfd);
+    close(conn_inf.client_fd);
     return -1;
   } else
     printf("Server listening on port %s...\n", conn_inf.port);
@@ -197,10 +197,7 @@ void parse_server_opts(const int argc, char *argv[]) {
   while ((opt = getopt(argc, argv, "p:h")) != -1) {
     switch (opt) {
     case 'p':
-      if (strlen(optarg) < NI_MAXSERV)
-        conn_inf.port = optarg;
-      else
-        fprintf(stderr, "Port exceeds %d characters\n", NI_MAXSERV - 1);
+      conn_inf.port = optarg;
       break;
     case 'h':
     default:
@@ -219,17 +216,10 @@ void parse_client_opts(const int argc, char *argv[]) {
   while ((opt = getopt(argc, argv, "a:p:h")) != -1) {
     switch (opt) {
     case 'p':
-      if (strlen(optarg) < NI_MAXSERV)
-        conn_inf.port = optarg;
-      else
-        fprintf(stderr, "Port exceeds %d characters\n", NI_MAXSERV - 1);
+      conn_inf.port = optarg;
       break;
     case 'a':
-      if (strlen(optarg) < NI_MAXHOST)
-        conn_inf.host = optarg;
-      else
-        fprintf(stderr, "Address (hostname) exceeds %d characters\n",
-                NI_MAXHOST - 1);
+      conn_inf.host = optarg;
       break;
     case 'h':
     default:
@@ -262,14 +252,14 @@ void assign_tcp_dual_stack_client_fd(void) {
 
   // Try to connect to one of the results
   for (p = res; p != NULL; p = p->ai_next) {
-    conn_inf.sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
-    if (conn_inf.sockfd == -1)
+    conn_inf.client_fd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
+    if (conn_inf.client_fd == -1)
       continue;
 
-    if (connect(conn_inf.sockfd, p->ai_addr, p->ai_addrlen) == 0)
+    if (connect(conn_inf.client_fd, p->ai_addr, p->ai_addrlen) == 0)
       break; // Connected successfully
 
-    close(conn_inf.sockfd);
+    close(conn_inf.client_fd);
   }
 
   freeaddrinfo(res);

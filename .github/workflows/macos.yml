@@ -41,6 +41,5 @@ jobs:
         meson compile -C _build
 
     - name: Test
-      continue-on-error: true
       run: |
         meson test -v -C _build

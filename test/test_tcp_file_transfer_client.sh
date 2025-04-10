@@ -9,7 +9,7 @@ else
 fi
 
 # Give the server time to bind and listen ;)
-sleep 3s
+sleep 3
 # Test by transferring the server binary
 ${MESON_BUILD_ROOT}/tcp_file_transfer_client -a 127.0.0.1 -f ${XFER_FILE_URI}
 

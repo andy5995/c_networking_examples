@@ -13,7 +13,7 @@ if [ -e ${XFER_FILE_BASENAME} ]; then
   rm ${XFER_FILE_BASENAME}
 fi
 
-${MESON_BUILD_ROOT}/tcp_file_transfer_server -p ${PORT}
+${MESON_BUILD_ROOT}/tcp_file_transfer_server
 
 rm ${XFER_FILE_BASENAME}
 

@@ -108,6 +108,7 @@ static void show_usage(const char *prgname) {
 int main(int argc, char *argv[]) {
   int opt;
   char *file = NULL;
+  conn_inf.port = default_port;
 
   while ((opt = getopt(argc, argv, "f:a:p:h")) != -1) {
     switch (opt) {

@@ -29,7 +29,6 @@
 #include <errno.h>
 #include <libgen.h> // basename()
 #include <limits.h>
-#include <poll.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

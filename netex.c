@@ -1,10 +1,15 @@
-#include <arpa/inet.h>
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h> // For inet_pton, inet_ntop
+#else
 #include <netdb.h>
 #include <netinet/in.h>
+#include <sys/socket.h>
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/socket.h>
 #include <unistd.h>
 
 #include "netex.h"
@@ -90,9 +95,7 @@ void assign_tcp_server_fd(void) {
     exit(EXIT_FAILURE);
   } else {
     puts("Socket successfully created");
-    int opt = 1;
-    if (setsockopt(conn_inf.server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
-      perror("setsockopt SO_REUSEADDR");
+    set_sock_reuse();
   }
 
   memset(&servaddr, 0, sizeof servaddr);
@@ -149,9 +152,7 @@ void assign_udp_server_fd() {
     if (conn_inf.server_fd == -1)
       continue;
 
-    int optval = 0;
-    if (setsockopt(conn_inf.server_fd, IPPROTO_IPV6, IPV6_V6ONLY, &optval, sizeof(optval)) < 0)
-      perror("setsockopt IPV6_V6ONLY");
+    set_sock_ipv6_v6only_disable(rp->ai_family);
 
     if (bind(conn_inf.server_fd, rp->ai_addr, rp->ai_addrlen) == 0)
       break; /* Success */
@@ -289,15 +290,8 @@ void assign_tcp_dual_stack_server_fd(void) {
     if (conn_inf.server_fd == -1)
       continue;
 
-    int optval = 0, opt = 1;
-    if (setsockopt(conn_inf.server_fd, IPPROTO_IPV6, IPV6_V6ONLY, &optval, sizeof(optval)) < 0)
-      perror("setsockopt IPV6_V6ONLY");
-
-    // When starting the server immediately after it was killed,
-    // prevent the error "Address already in use" when running
-    // See https://linux.die.net/man/3/setsockopt for more information.
-    if (setsockopt(conn_inf.server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
-      perror("setsockopt SO_REUSEADDR");
+    set_sock_reuse();
+    set_sock_ipv6_v6only_disable(p->ai_family);
 
     if (bind(conn_inf.server_fd, p->ai_addr, p->ai_addrlen) == 0)
       break; // Success
@@ -336,4 +330,38 @@ void get_user_input(char *buffer, size_t size, const char *prompt) {
     // fgets failed — clear buffer
     buffer[0] = '\0';
   }
+}
+
+void set_sock_reuse(void) {
+  int r = -1;
+#ifdef _WIN32
+  // When starting the server immediately after it was killed,
+  // prevent the error "Address already in use" when running
+  // See https://linux.die.net/man/3/setsockopt for more information.
+  const char opt = 1;
+  r = (setsockopt(conn_inf.server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0);
+
+#else
+  int opt = 1;
+  r = (setsockopt(conn_inf.server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0);
+
+#endif
+  if (r == -1)
+    perror("setsockopt SO_REUSEADDR");
+}
+
+void set_sock_ipv6_v6only_disable(const int ai_family) {
+  int r = -1;
+#ifdef _WIN32
+  if (ai_family == AF_INET6) {
+    const char optval = 0;
+    r = (setsockopt(conn_inf.server_fd, IPPROTO_IPV6, IPV6_V6ONLY, &optval, sizeof(optval)) < 0);
+  }
+#else
+  (void)ai_family;
+  int optval = 0;
+  r = (setsockopt(conn_inf.server_fd, IPPROTO_IPV6, IPV6_V6ONLY, &optval, sizeof(optval)) < 0);
+#endif
+  if (r == -1)
+    perror("setsockopt IPV6_V6ONLY");
 }

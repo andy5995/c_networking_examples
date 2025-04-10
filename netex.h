@@ -1,14 +1,27 @@
+#ifdef _WIN32
+#include <winsock2.h>
+#else
+#include <arpa/inet.h>
 #include <netdb.h>
+#include <poll.h>
+#endif
 
 #define BACKLOG 10
 #define MAX_BUF_ECHO_MSG 512
 extern const char *default_port;
 
+#ifdef _WIN32
+typedef SOCKET socket_t;
+typedef int socklen_t;
+#else
+typedef int socket_t;
+#endif
+
 typedef struct {
   char *host;
   const char *port;
-  int client_fd;
-  int server_fd;
+  socket_t client_fd;
+  socket_t server_fd;
 } conn_info;
 
 extern conn_info conn_inf;
@@ -26,3 +39,7 @@ void assign_tcp_dual_stack_client_fd(void);
 void assign_tcp_dual_stack_server_fd(void);
 
 void get_user_input(char *buffer, size_t size, const char *prompt);
+
+void set_sock_reuse(void);
+
+void set_sock_ipv6_v6only_disable(const int ai_family);

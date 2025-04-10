@@ -28,7 +28,6 @@
 
 #include <errno.h>
 #include <limits.h> // PATH_MAX
-#include <poll.h>
 #include <stdio.h>  // BUFSIZ
 #include <stdlib.h> // exit()
 #include <string.h>

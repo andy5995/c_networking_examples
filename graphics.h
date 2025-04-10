@@ -1,5 +1,4 @@
 #include <SDL2/SDL.h>
-#include <netdb.h>
 
 #define WINDOW_WIDTH 720
 #define WINDOW_HEIGHT 480

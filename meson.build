@@ -3,7 +3,7 @@ project(
   ['c'],
   version: '0.1.0.555',
   meson_version : '>= 0.56.0',
-  default_options: ['warning_level=3', 'b_sanitize=address,undefined', 'c_std=c99'],
+  default_options: ['warning_level=3', 'b_sanitize=address,undefined', 'b_lundef=false', 'c_std=c99'],
   )
 
 cc = meson.get_compiler('c')
@@ -62,6 +62,7 @@ if sdl_dep.found()
   _graphics = static_library(
     'graphics',
     'graphics.c',
+    dependencies: sdl_dep,
     install: false
     )
 

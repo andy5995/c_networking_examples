@@ -89,6 +89,7 @@ int main(int argc, char *argv[]) {
       return -1;
     }
 
+    memset(buf, 0, sizeof buf);
     nread = read(conn_inf.client_fd, buf, sizeof buf);
     if (nread == -1) {
       perror("read");

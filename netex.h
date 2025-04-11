@@ -13,8 +13,10 @@ extern const char *default_port;
 #ifdef _WIN32
 typedef SOCKET socket_t;
 typedef int socklen_t;
+#define IS_VALID_SOCKET(s) ((s) != INVALID_SOCKET)
 #else
 typedef int socket_t;
+#define IS_VALID_SOCKET(s) ((s) >= 0)
 #endif
 
 typedef struct {
@@ -43,3 +45,7 @@ void get_user_input(char *buffer, size_t size, const char *prompt);
 void set_sock_reuse(void);
 
 void set_sock_ipv6_v6only_disable(const int ai_family);
+
+void shutdown_socket_checked(socket_t sockfd);
+
+void close_socket_checked(socket_t sockfd);

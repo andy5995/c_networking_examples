@@ -79,7 +79,7 @@ int main(int argc, char *argv[]) {
   if (close(conn_inf.client_fd))
     perror("close() failed");
 
-  if (conn_inf.server_fd < 0) {
+  if (!IS_VALID_SOCKET(conn_inf.server_fd)) {
     perror("accept");
     return conn_inf.server_fd;
   }

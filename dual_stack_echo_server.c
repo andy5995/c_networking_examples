@@ -25,7 +25,7 @@ int main(int argc, char *argv[]) {
     struct sockaddr_storage client_addr;
     socklen_t addr_size = sizeof(client_addr);
     conn_inf.client_fd = accept(conn_inf.server_fd, (struct sockaddr *)&client_addr, &addr_size);
-    if (conn_inf.client_fd == -1)
+    if (!IS_VALID_SOCKET(conn_inf.client_fd))
       continue;
 
     handle_client(conn_inf.client_fd);

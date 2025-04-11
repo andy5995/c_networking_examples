@@ -15,12 +15,11 @@ int main(int argc, char *argv[]) {
   pthread_t receiver;
   run_sdl_loop(sdl_context.renderer, SQUARE, &receiver);
 
-  if (shutdown(conn_inf.client_fd, SHUT_RDWR) != 0)
-    perror("shutdown");
-
-  if (close(conn_inf.client_fd) != 0)
-    perror("close");
-  pthread_join(receiver, NULL);
+  if (IS_VALID_SOCKET(conn_inf.client_fd)) {
+    shutdown_socket_checked(conn_inf.client_fd);
+    close_socket_checked(conn_inf.client_fd);
+    pthread_join(receiver, NULL);
+  }
 
   do_sdl_cleanup(&sdl_context);
 

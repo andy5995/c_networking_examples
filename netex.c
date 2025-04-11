@@ -64,7 +64,7 @@ void assign_tcp_client_fd(void) {
   for (rp = result; rp != NULL; rp = rp->ai_next) {
     show_ip(rp);
     conn_inf.client_fd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
-    if (conn_inf.client_fd == -1)
+    if (!IS_VALID_SOCKET(conn_inf.client_fd))
       continue;
 
     if (connect(conn_inf.client_fd, rp->ai_addr, rp->ai_addrlen) == 0) {
@@ -72,14 +72,14 @@ void assign_tcp_client_fd(void) {
       break;
     }
     perror("connect");
-    if (close(conn_inf.client_fd) != 0)
-      perror("close");
+    close_socket_checked(conn_inf.client_fd);
+
     exit(EXIT_FAILURE);
   }
 
   freeaddrinfo(result); /* No longer needed */
 
-  if (conn_inf.client_fd == -1) {
+  if (!IS_VALID_SOCKET(conn_inf.client_fd)) {
     fputs("Unable to create socket\n", stderr);
     exit(EXIT_FAILURE);
   }
@@ -90,7 +90,7 @@ void assign_tcp_server_fd(void) {
   struct sockaddr_in servaddr;
 
   conn_inf.server_fd = socket(AF_INET, SOCK_STREAM, 0);
-  if (conn_inf.server_fd == -1) {
+  if (!IS_VALID_SOCKET(conn_inf.server_fd)) {
     perror("socket");
     exit(EXIT_FAILURE);
   } else {
@@ -149,7 +149,7 @@ void assign_udp_server_fd(void) {
     show_ip(rp);
 
     conn_inf.server_fd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
-    if (conn_inf.server_fd == -1)
+    if (!IS_VALID_SOCKET(conn_inf.server_fd))
       continue;
 
     set_sock_ipv6_v6only_disable(rp->ai_family);
@@ -249,7 +249,7 @@ void assign_tcp_dual_stack_client_fd(void) {
   // Try to connect to one of the results
   for (p = res; p != NULL; p = p->ai_next) {
     conn_inf.client_fd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
-    if (conn_inf.client_fd == -1)
+    if (!IS_VALID_SOCKET(conn_inf.client_fd))
       continue;
 
     if (connect(conn_inf.client_fd, p->ai_addr, p->ai_addrlen) == 0)
@@ -287,7 +287,7 @@ void assign_tcp_dual_stack_server_fd(void) {
   // Create and bind socket
   for (p = res; p != NULL; p = p->ai_next) {
     conn_inf.server_fd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
-    if (conn_inf.server_fd == -1)
+    if (!IS_VALID_SOCKET(conn_inf.server_fd))
       continue;
 
     set_sock_reuse();
@@ -364,4 +364,26 @@ void set_sock_ipv6_v6only_disable(const int ai_family) {
 #endif
   if (r == -1)
     perror("setsockopt IPV6_V6ONLY");
+}
+
+void shutdown_socket_checked(socket_t sockfd) {
+  if (IS_VALID_SOCKET(sockfd)) {
+#ifdef _WIN32
+    if (shutdown(sockfd, SD_BOTH) == SOCKET_ERROR)
+      perror("shutdown");
+#else
+    if (shutdown(sockfd, SHUT_RDWR) != 0)
+      perror("shutdown");
+#endif
+  }
+}
+
+void close_socket_checked(socket_t sockfd) {
+#ifdef _WIN32
+  if (closesocket(sockfd) != 0)
+    perror("closesocket");
+#else
+  if (close(sockfd) != 0)
+    perror("close");
+#endif
 }

@@ -162,10 +162,9 @@ static int accept_connection(void) {
   // Accept the data packet from client and verification
   conn_inf.client_fd = accept(conn_inf.server_fd, (struct sockaddr *)&cli, &len);
   // server_fd only needed if more connections are desired
-  if (close(conn_inf.server_fd))
-    perror("close() failed");
+  close_socket_checked(conn_inf.server_fd);
 
-  if (conn_inf.client_fd == -1) {
+  if (!IS_VALID_SOCKET(conn_inf.client_fd)) {
     perror("accept");
     return conn_inf.client_fd;
   }
@@ -184,8 +183,7 @@ int main(int argc, char *argv[]) {
 
   int f_exists = recv_file();
 
-  if (close(conn_inf.client_fd))
-    perror("close() failed");
+  close_socket_checked(conn_inf.client_fd);
 
   return f_exists;
 }

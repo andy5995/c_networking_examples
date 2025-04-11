@@ -135,9 +135,7 @@ int main(int argc, char *argv[]) {
 
   int f_exists = func(file);
 
-  puts("\nClosing socket");
-  if (close(conn_inf.client_fd) != 0)
-    perror("close() failed");
+  close_socket_checked(conn_inf.client_fd);
 
   return f_exists;
 }

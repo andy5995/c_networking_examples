@@ -63,7 +63,7 @@ int main(int argc, char *argv[]) {
 
   for (rp = result; rp != NULL; rp = rp->ai_next) {
     conn_inf.client_fd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
-    if (conn_inf.client_fd == -1)
+    if (!IS_VALID_SOCKET(conn_inf.client_fd))
       continue;
 
     if (connect(conn_inf.client_fd, rp->ai_addr, rp->ai_addrlen) != -1)

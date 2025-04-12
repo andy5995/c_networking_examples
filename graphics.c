@@ -3,6 +3,8 @@
 #include "graphics.h"
 #include "netex.h"
 
+#define LEN_FORMATTED_MSG 11
+
 struct peer_state {
   int x;
   int y;
@@ -43,12 +45,23 @@ static void draw_filled_area(SDL_Renderer *renderer, int x, int y, int r, enum e
 
 static void *recv_thread(void *arg) {
   struct peer_state *args = (struct peer_state *)arg;
-  char buffer[BUFFER_SIZE];
   while (1) {
-    ssize_t bytes_received = recv(conn_inf.client_fd, buffer, BUFFER_SIZE - 1, 0);
+    char buffer[BUFFER_SIZE] = {0};
+
+    // For stream-based sockets, such as SOCK_STREAM, message boundaries shall be
+    // ignored. In this case, data shall be returned to the user as soon as it
+    // becomes available, and no data shall be discarded. If the MSG_WAITALL flag
+    // is not set, data shall be returned only up to the end of  the  first message.
+    //
+    // So we won't rely on recv() to receive the exact packet that was sent by
+    // send() on a single call, but instead use MSG_WAITALL...
+    ssize_t bytes_received = recv(conn_inf.client_fd, buffer, LEN_FORMATTED_MSG, MSG_WAITALL);
     if (bytes_received <= 0) {
       if (bytes_received == -1)
         perror("recv");
+      break;
+    } else if (bytes_received > LEN_FORMATTED_MSG) {
+      fprintf(stderr, "Packet length exceeded by %ld bytes\n", bytes_received - LEN_FORMATTED_MSG);
       break;
     }
 
@@ -67,6 +80,7 @@ static void *recv_thread(void *arg) {
 
 void run_sdl_loop(SDL_Renderer *renderer, enum e_shape shape, pthread_t *receiver) {
   int x = WINDOW_WIDTH / 2, y = WINDOW_HEIGHT / 2;
+  const char *formatted_msg = "%04d %04d %d";
 
   struct peer_state peer_state = {
       .x = WINDOW_WIDTH / 2,
@@ -77,7 +91,7 @@ void run_sdl_loop(SDL_Renderer *renderer, enum e_shape shape, pthread_t *receive
   pthread_create(receiver, NULL, recv_thread, &peer_state);
 
   char message[64];
-  int len = snprintf(message, sizeof(message), "%d %d %d\n", x, y, shape);
+  int len = snprintf(message, sizeof(message), formatted_msg, x, y, shape);
   if (send(conn_inf.client_fd, message, len, 0) == -1)
     perror("send");
 
@@ -91,7 +105,7 @@ void run_sdl_loop(SDL_Renderer *renderer, enum e_shape shape, pthread_t *receive
       if (event.type == SDL_MOUSEBUTTONDOWN) {
         x = event.button.x;
         y = event.button.y;
-        len = snprintf(message, sizeof(message), "%d %d %d\n", x, y, shape);
+        len = snprintf(message, sizeof(message), formatted_msg, x, y, shape);
         if (send(conn_inf.client_fd, message, len, 0) == -1) {
           perror("send");
         }

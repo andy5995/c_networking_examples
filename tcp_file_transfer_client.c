@@ -59,7 +59,7 @@ int func(const char *file) {
   char *file_basename = basename(file_orig);
   printf("Sending %s...\n", file);
 
-  send(conn_inf.client_fd, file_basename, strlen(file_basename) + 1, 0);
+  send(conn_inf.sockfd, file_basename, strlen(file_basename) + 1, 0);
   char buff[BUFSIZ];
   size_t n_bytes_total = 0;
   do {
@@ -69,7 +69,7 @@ int func(const char *file) {
       fputs("error: fread", stderr);
       exit(-1);
     }
-    send(conn_inf.client_fd, buff, num, 0);
+    send(conn_inf.sockfd, buff, num, 0);
     n_bytes_total += num;
     printf("bytes sent: %li\r", n_bytes_total);
 
@@ -79,7 +79,7 @@ int func(const char *file) {
   memset(buff, 0, sizeof buff);
   fputs("Server replied: ", stdout);
   int n_bytes_recvd;
-  while ((n_bytes_recvd = recv(conn_inf.client_fd, buff, sizeof(buff), 0)) != 0) {
+  while ((n_bytes_recvd = recv(conn_inf.sockfd, buff, sizeof(buff), 0)) != 0) {
     fputs(buff, stdout);
     *buff = '\0';
   }
@@ -135,7 +135,7 @@ int main(int argc, char *argv[]) {
 
   int f_exists = func(file);
 
-  close_socket_checked(conn_inf.client_fd);
+  close_socket_checked(conn_inf.sockfd);
 
   return f_exists;
 }

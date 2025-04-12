@@ -16,7 +16,7 @@
 
 const char *default_port = "61357";
 
-conn_info conn_inf = {.host = NULL, .port = NULL, .client_fd = -1, .server_fd = -1};
+conn_info conn_inf = {.host = NULL, .port = NULL, .sockfd = INVALID_SOCKET, .client_fd = INVALID_SOCKET};
 
 /* show_ip
  * only needed to demonstrate how to get and display the IP.
@@ -63,23 +63,23 @@ void assign_tcp_client_fd(void) {
 
   for (rp = result; rp != NULL; rp = rp->ai_next) {
     show_ip(rp);
-    conn_inf.client_fd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
-    if (!IS_VALID_SOCKET(conn_inf.client_fd))
+    conn_inf.sockfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+    if (!IS_VALID_SOCKET(conn_inf.sockfd))
       continue;
 
-    if (connect(conn_inf.client_fd, rp->ai_addr, rp->ai_addrlen) == 0) {
+    if (connect(conn_inf.sockfd, rp->ai_addr, rp->ai_addrlen) == 0) {
       printf("Connected to %s\n", conn_inf.host);
       break;
     }
     perror("connect");
-    close_socket_checked(conn_inf.client_fd);
+    close_socket_checked(conn_inf.sockfd);
 
     exit(EXIT_FAILURE);
   }
 
   freeaddrinfo(result); /* No longer needed */
 
-  if (!IS_VALID_SOCKET(conn_inf.client_fd)) {
+  if (conn_inf.sockfd == INVALID_SOCKET) {
     fputs("Unable to create socket\n", stderr);
     exit(EXIT_FAILURE);
   }
@@ -89,8 +89,8 @@ void assign_tcp_client_fd(void) {
 void assign_tcp_server_fd(void) {
   struct sockaddr_in servaddr;
 
-  conn_inf.server_fd = socket(AF_INET, SOCK_STREAM, 0);
-  if (!IS_VALID_SOCKET(conn_inf.server_fd)) {
+  conn_inf.sockfd = socket(AF_INET, SOCK_STREAM, 0);
+  if (conn_inf.sockfd == INVALID_SOCKET) {
     perror("socket");
     exit(EXIT_FAILURE);
   } else {
@@ -105,17 +105,17 @@ void assign_tcp_server_fd(void) {
   servaddr.sin_port = htons(atoi(conn_inf.port));
 
   // Binding newly created socket to given IP and verification
-  if ((bind(conn_inf.server_fd, (struct sockaddr *)&servaddr, sizeof(servaddr))) == -1) {
+  if ((bind(conn_inf.sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr))) == -1) {
     perror("bind");
-    close(conn_inf.server_fd);
+    close(conn_inf.sockfd);
     exit(EXIT_FAILURE);
   }
 
   printf("Socket successfully binded..\n");
   // Now server is ready to listen and verification
-  if ((listen(conn_inf.server_fd, 5)) != 0) {
+  if ((listen(conn_inf.sockfd, 5)) != 0) {
     perror("listen");
-    close(conn_inf.server_fd);
+    close_socket_checked(conn_inf.sockfd);
     exit(EXIT_FAILURE);
   } else
     printf("Server listening on port %s...\n", conn_inf.port);
@@ -148,16 +148,16 @@ void assign_udp_server_fd(void) {
   for (rp = result; rp != NULL; rp = rp->ai_next) {
     show_ip(rp);
 
-    conn_inf.server_fd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
-    if (!IS_VALID_SOCKET(conn_inf.server_fd))
+    conn_inf.sockfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+    if (conn_inf.sockfd == INVALID_SOCKET)
       continue;
 
     set_sock_ipv6_v6only_disable(rp->ai_family);
 
-    if (bind(conn_inf.server_fd, rp->ai_addr, rp->ai_addrlen) == 0)
+    if (bind(conn_inf.sockfd, rp->ai_addr, rp->ai_addrlen) == 0)
       break; /* Success */
 
-    close(conn_inf.server_fd);
+    close(conn_inf.sockfd);
   }
 
   if (rp == NULL) { /* No address succeeded */
@@ -248,14 +248,14 @@ void assign_tcp_dual_stack_client_fd(void) {
 
   // Try to connect to one of the results
   for (p = res; p != NULL; p = p->ai_next) {
-    conn_inf.client_fd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
-    if (!IS_VALID_SOCKET(conn_inf.client_fd))
+    conn_inf.sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
+    if (!IS_VALID_SOCKET(conn_inf.sockfd))
       continue;
 
-    if (connect(conn_inf.client_fd, p->ai_addr, p->ai_addrlen) == 0)
+    if (connect(conn_inf.sockfd, p->ai_addr, p->ai_addrlen) == 0)
       break; // Connected successfully
 
-    close(conn_inf.client_fd);
+    close(conn_inf.sockfd);
   }
 
   freeaddrinfo(res);
@@ -286,16 +286,16 @@ void assign_tcp_dual_stack_server_fd(void) {
 
   // Create and bind socket
   for (p = res; p != NULL; p = p->ai_next) {
-    conn_inf.server_fd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
-    if (!IS_VALID_SOCKET(conn_inf.server_fd))
+    conn_inf.sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
+    if (!IS_VALID_SOCKET(conn_inf.sockfd))
       continue;
 
     set_sock_reuse();
     set_sock_ipv6_v6only_disable(p->ai_family);
 
-    if (bind(conn_inf.server_fd, p->ai_addr, p->ai_addrlen) == 0)
+    if (bind(conn_inf.sockfd, p->ai_addr, p->ai_addrlen) == 0)
       break; // Success
-    close(conn_inf.server_fd);
+    close(conn_inf.sockfd);
   }
 
   freeaddrinfo(res);
@@ -305,7 +305,7 @@ void assign_tcp_dual_stack_server_fd(void) {
   }
 
   // Start listening
-  if (listen(conn_inf.server_fd, BACKLOG) == -1) {
+  if (listen(conn_inf.sockfd, BACKLOG) == -1) {
     perror("listen");
     exit(EXIT_FAILURE);
   }
@@ -339,11 +339,11 @@ void set_sock_reuse(void) {
   // prevent the error "Address already in use" when running
   // See https://linux.die.net/man/3/setsockopt for more information.
   const char opt = 1;
-  r = (setsockopt(conn_inf.server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0);
+  r = (setsockopt(conn_inf.sockfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0);
 
 #else
   int opt = 1;
-  r = (setsockopt(conn_inf.server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0);
+  r = (setsockopt(conn_inf.sockfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0);
 
 #endif
   if (r == -1)
@@ -355,12 +355,12 @@ void set_sock_ipv6_v6only_disable(const int ai_family) {
 #ifdef _WIN32
   if (ai_family == AF_INET6) {
     const char optval = 0;
-    r = (setsockopt(conn_inf.server_fd, IPPROTO_IPV6, IPV6_V6ONLY, &optval, sizeof(optval)) < 0);
+    r = (setsockopt(conn_inf.sockfd, IPPROTO_IPV6, IPV6_V6ONLY, &optval, sizeof(optval)) < 0);
   }
 #else
   (void)ai_family;
   int optval = 0;
-  r = (setsockopt(conn_inf.server_fd, IPPROTO_IPV6, IPV6_V6ONLY, &optval, sizeof(optval)) < 0);
+  r = (setsockopt(conn_inf.sockfd, IPPROTO_IPV6, IPV6_V6ONLY, &optval, sizeof(optval)) < 0);
 #endif
   if (r == -1)
     perror("setsockopt IPV6_V6ONLY");

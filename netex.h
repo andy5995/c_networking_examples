@@ -17,13 +17,15 @@ typedef int socklen_t;
 #else
 typedef int socket_t;
 #define IS_VALID_SOCKET(s) ((s) >= 0)
+#define INVALID_SOCKET -1
 #endif
+
 
 typedef struct {
   char *host;
   const char *port;
+  socket_t sockfd;
   socket_t client_fd;
-  socket_t server_fd;
 } conn_info;
 
 extern conn_info conn_inf;

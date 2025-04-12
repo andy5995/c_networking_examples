@@ -10,20 +10,21 @@ int main(int argc, char *argv[]) {
 
   struct sockaddr_storage client_addr;
   socklen_t addr_size = sizeof(client_addr);
-  conn_inf.client_fd = accept(conn_inf.server_fd, (struct sockaddr *)&client_addr, &addr_size);
-  if (!IS_VALID_SOCKET(conn_inf.client_fd)) {
+  conn_inf.client_fd = accept(conn_inf.sockfd, (struct sockaddr *)&client_addr, &addr_size);
+  if (conn_inf.sockfd == INVALID_SOCKET) {
     perror("Client connection failed");
   }
   // server_fd only needed if more connections are desired
-  close_socket_checked(conn_inf.server_fd);
+  close_socket_checked(conn_inf.sockfd);
 
   struct sdl_context sdl_context;
   init_sdl_window(&sdl_context, "SDL Server");
 
+  conn_inf.sockfd = conn_inf.client_fd;
   pthread_t receiver;
   run_sdl_loop(sdl_context.renderer, CIRCLE, &receiver);
 
-  if (IS_VALID_SOCKET(conn_inf.client_fd)) {
+  if (conn_inf.client_fd != INVALID_SOCKET) {
     shutdown_socket_checked(conn_inf.client_fd);
     close_socket_checked(conn_inf.client_fd);
     pthread_join(receiver, NULL);

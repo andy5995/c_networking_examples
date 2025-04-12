@@ -45,7 +45,7 @@ static void func(void) {
     memset(buff, 0, BUFSIZ);
 
     // read the message from client and copy it in buffer
-    read(conn_inf.server_fd, buff, sizeof(buff));
+    read(conn_inf.client_fd, buff, sizeof(buff));
     // print buffer which contains the client contents
     printf("From client: %s\t To client : ", buff);
     memset(buff, 0, BUFSIZ);
@@ -55,7 +55,7 @@ static void func(void) {
       ;
 
     // and send that buffer to client
-    write(conn_inf.server_fd, buff, sizeof(buff));
+    write(conn_inf.client_fd, buff, sizeof(buff));
 
     // if msg contains "Exit" then server exit and chat ended.
     if (strncmp("exit", buff, 4) == 0) {
@@ -74,14 +74,14 @@ int main(int argc, char *argv[]) {
   socklen_t len = sizeof(cli);
 
   // Accept the data packet from client and verification
-  conn_inf.server_fd = accept(conn_inf.client_fd, (struct sockaddr *)&cli, &len);
+  conn_inf.client_fd = accept(conn_inf.sockfd, (struct sockaddr *)&cli, &len);
   // sockfd only needed if more connections are desired
-  if (close(conn_inf.client_fd))
+  if (close(conn_inf.sockfd))
     perror("close() failed");
 
-  if (!IS_VALID_SOCKET(conn_inf.server_fd)) {
+  if (conn_inf.client_fd == INVALID_SOCKET) {
     perror("accept");
-    return conn_inf.server_fd;
+    return -1;
   }
 
   // Function for chatting between client and server

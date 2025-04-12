@@ -36,7 +36,7 @@ https://www.geeksforgeeks.org/tcp-server-client-implementation-in-c/
 
 #include "netex.h"
 
-void func(int sockfd) {
+static void func() {
   char buff[BUFSIZ];
   int n;
   for (;;) {
@@ -45,9 +45,9 @@ void func(int sockfd) {
     n = 0;
     while ((buff[n++] = getchar()) != '\n')
       ;
-    write(sockfd, buff, sizeof buff);
+    write(conn_inf.sockfd, buff, sizeof buff);
     memset(buff, 0, sizeof buff);
-    read(sockfd, buff, sizeof buff);
+    read(conn_inf.sockfd, buff, sizeof buff);
     printf("From Server : %s", buff);
     if ((strncmp(buff, "exit", 4)) == 0) {
       printf("Client Exit...\n");
@@ -56,37 +56,15 @@ void func(int sockfd) {
   }
 }
 
-static void show_usage(const char *prgname) {
-  printf("Usage: %s [OPTIONS]\n\n", prgname);
-  puts("\
-  -a <address>\n\
-  -p <port>\n");
-  return;
-}
 
 int main(int argc, char *argv[]) {
-  int opt;
-
-  while ((opt = getopt(argc, argv, "a:p:h")) != -1) {
-    switch (opt) {
-    case 'p':
-      conn_inf.port = optarg;
-      break;
-    case 'a':
-      conn_inf.host = optarg;
-      break;
-    case 'h':
-    default:
-      show_usage(argv[0]);
-      return 0;
-    }
-  }
+  parse_client_opts(argc, argv);
 
   assign_tcp_client_fd();
 
   // function for chat
-  func(conn_inf.client_fd);
+  func();
 
   // close the socket
-  return close(conn_inf.client_fd);
+  return close(conn_inf.sockfd);
 }

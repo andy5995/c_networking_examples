@@ -46,7 +46,7 @@ static void draw_filled_area(SDL_Renderer *renderer, int x, int y, int r, enum e
 static void *recv_thread(void *arg) {
   struct peer_state *args = (struct peer_state *)arg;
   while (1) {
-    char buffer[BUFFER_SIZE] = {0};
+    char buffer[LEN_FORMATTED_MSG + 1] = {0};
 
     // For stream-based sockets, such as SOCK_STREAM, message boundaries shall be
     // ignored. In this case, data shall be returned to the user as soon as it
@@ -55,7 +55,7 @@ static void *recv_thread(void *arg) {
     //
     // So we won't rely on recv() to receive the exact packet that was sent by
     // send() on a single call, but instead use MSG_WAITALL...
-    ssize_t bytes_received = recv(conn_inf.client_fd, buffer, LEN_FORMATTED_MSG, MSG_WAITALL);
+    ssize_t bytes_received = recv(conn_inf.sockfd, buffer, LEN_FORMATTED_MSG, MSG_WAITALL);
     if (bytes_received <= 0) {
       if (bytes_received == -1)
         perror("recv");
@@ -92,7 +92,7 @@ void run_sdl_loop(SDL_Renderer *renderer, enum e_shape shape, pthread_t *receive
 
   char message[64];
   int len = snprintf(message, sizeof(message), formatted_msg, x, y, shape);
-  if (send(conn_inf.client_fd, message, len, 0) == -1)
+  if (send(conn_inf.sockfd, message, len, 0) == -1)
     perror("send");
 
   int running = 1;
@@ -106,7 +106,7 @@ void run_sdl_loop(SDL_Renderer *renderer, enum e_shape shape, pthread_t *receive
         x = event.button.x;
         y = event.button.y;
         len = snprintf(message, sizeof(message), formatted_msg, x, y, shape);
-        if (send(conn_inf.client_fd, message, len, 0) == -1) {
+        if (send(conn_inf.sockfd, message, len, 0) == -1) {
           perror("send");
         }
       }

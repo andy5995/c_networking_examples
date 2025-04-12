@@ -3,7 +3,6 @@
 #define WINDOW_WIDTH 720
 #define WINDOW_HEIGHT 480
 #define CIRCLE_RADIUS 20
-#define BUFFER_SIZE 64
 
 enum e_shape {
   CIRCLE,

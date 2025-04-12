@@ -24,13 +24,14 @@ int main(int argc, char *argv[]) {
   while (1) {
     struct sockaddr_storage client_addr;
     socklen_t addr_size = sizeof(client_addr);
-    conn_inf.client_fd = accept(conn_inf.server_fd, (struct sockaddr *)&client_addr, &addr_size);
+    conn_inf.client_fd = accept(conn_inf.sockfd, (struct sockaddr *)&client_addr, &addr_size);
     if (!IS_VALID_SOCKET(conn_inf.client_fd))
       continue;
 
+    close_socket_checked(conn_inf.sockfd);
     handle_client(conn_inf.client_fd);
   }
 
-  close(conn_inf.server_fd);
+  close(conn_inf.client_fd);
   return 0;
 }

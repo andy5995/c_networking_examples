@@ -44,7 +44,7 @@ int main(int argc, char *argv[]) {
     struct sockaddr_storage peer_addr;
     char buf[MAX_BUF_ECHO_MSG] = {0};
     socklen_t peer_addr_len = sizeof(struct sockaddr_storage);
-    ssize_t nread = recvfrom(conn_inf.server_fd, buf, sizeof buf, 0, (struct sockaddr *)&peer_addr,
+    ssize_t nread = recvfrom(conn_inf.sockfd, buf, sizeof buf, 0, (struct sockaddr *)&peer_addr,
                              &peer_addr_len);
 
     if (nread == -1) {
@@ -60,17 +60,17 @@ int main(int argc, char *argv[]) {
       fprintf(stderr, "getnameinfo: %s\n", gai_strerror(s));
 
     ssize_t r_sto =
-        sendto(conn_inf.server_fd, buf, nread, 0, (struct sockaddr *)&peer_addr, peer_addr_len);
+        sendto(conn_inf.sockfd, buf, nread, 0, (struct sockaddr *)&peer_addr, peer_addr_len);
 
     if (strncasecmp(buf, "exit", 4) == 0) {
       puts("Received 'exit'");
-      close(conn_inf.server_fd);
+      close(conn_inf.sockfd);
       return 0;
     }
 
     if (r_sto != nread) {
       fputs("Error sending response\n", stderr);
-      close(conn_inf.server_fd);
+      close(conn_inf.sockfd);
       return r_sto;
     }
   }

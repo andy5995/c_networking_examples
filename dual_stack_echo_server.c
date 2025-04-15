@@ -25,7 +25,7 @@ int main(int argc, char *argv[]) {
     struct sockaddr_storage client_addr;
     socklen_t addr_size = sizeof(client_addr);
     conn_inf.client_fd = accept(conn_inf.sockfd, (struct sockaddr *)&client_addr, &addr_size);
-    if (!IS_VALID_SOCKET(conn_inf.client_fd))
+    if (conn_inf.client_fd == INVALID_SOCKET)
       continue;
 
     close_socket_checked(conn_inf.sockfd);

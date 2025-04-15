@@ -64,7 +64,7 @@ void assign_tcp_client_fd(void) {
   for (rp = result; rp != NULL; rp = rp->ai_next) {
     show_ip(rp);
     conn_inf.sockfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
-    if (!IS_VALID_SOCKET(conn_inf.sockfd))
+    if (conn_inf.sockfd == INVALID_SOCKET)
       continue;
 
     if (connect(conn_inf.sockfd, rp->ai_addr, rp->ai_addrlen) == 0) {
@@ -249,7 +249,7 @@ void assign_tcp_dual_stack_client_fd(void) {
   // Try to connect to one of the results
   for (p = res; p != NULL; p = p->ai_next) {
     conn_inf.sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
-    if (!IS_VALID_SOCKET(conn_inf.sockfd))
+    if (conn_inf.sockfd == INVALID_SOCKET)
       continue;
 
     if (connect(conn_inf.sockfd, p->ai_addr, p->ai_addrlen) == 0)
@@ -287,7 +287,7 @@ void assign_tcp_dual_stack_server_fd(void) {
   // Create and bind socket
   for (p = res; p != NULL; p = p->ai_next) {
     conn_inf.sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
-    if (!IS_VALID_SOCKET(conn_inf.sockfd))
+    if (conn_inf.sockfd == INVALID_SOCKET)
       continue;
 
     set_sock_reuse();
@@ -367,7 +367,7 @@ void set_sock_ipv6_v6only_disable(const int ai_family) {
 }
 
 void shutdown_socket_checked(socket_t sockfd) {
-  if (IS_VALID_SOCKET(sockfd)) {
+  if (conn_inf.sockfd != INVALID_SOCKET) {
 #ifdef _WIN32
     if (shutdown(sockfd, SD_BOTH) == SOCKET_ERROR)
       perror("shutdown");

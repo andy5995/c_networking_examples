@@ -164,7 +164,7 @@ static int accept_connection(void) {
   // sockfd only needed if more connections are desired
   close_socket_checked(conn_inf.sockfd);
 
-  if (!IS_VALID_SOCKET(conn_inf.client_fd)) {
+  if (conn_inf.client_fd == INVALID_SOCKET) {
     perror("accept");
     return -1;
   }

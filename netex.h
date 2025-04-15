@@ -13,10 +13,8 @@ extern const char *default_port;
 #ifdef _WIN32
 typedef SOCKET socket_t;
 typedef int socklen_t;
-#define IS_VALID_SOCKET(s) ((s) != INVALID_SOCKET)
 #else
 typedef int socket_t;
-#define IS_VALID_SOCKET(s) ((s) >= 0)
 #define INVALID_SOCKET -1
 #endif
 

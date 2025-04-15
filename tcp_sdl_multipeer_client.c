@@ -15,7 +15,7 @@ int main(int argc, char *argv[]) {
   pthread_t receiver;
   run_sdl_loop(sdl_context.renderer, SQUARE, &receiver);
 
-  if (IS_VALID_SOCKET(conn_inf.sockfd)) {
+  if (conn_inf.sockfd != INVALID_SOCKET) {
     shutdown_socket_checked(conn_inf.sockfd);
     close_socket_checked(conn_inf.sockfd);
     pthread_join(receiver, NULL);

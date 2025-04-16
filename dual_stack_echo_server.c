@@ -9,29 +9,40 @@
 #include <unistd.h>
 
 #include "netex.h"
+#include "util.h"
 
 #define MESSAGE "hello world\n"
 
-void handle_client(int client_fd) {
-  send(client_fd, MESSAGE, strlen(MESSAGE), 0);
-  close(client_fd);
-}
-
 int main(int argc, char *argv[]) {
-  parse_server_opts(argc, argv);
-  assign_tcp_dual_stack_server_fd();
+#ifdef _WIN32
+  if (!SetConsoleCtrlHandler(console_handler, TRUE)) {
+    fprintf(stderr, "Error setting console handler\n");
+    return 1;
+  }
+#else
+  struct sigaction sa;
+  sa.sa_handler = signal_handler;
+  sigemptyset(&sa.sa_mask);
+  sa.sa_flags = 0;
+  sigaction(SIGINT, &sa, NULL);
+#endif
 
-  while (1) {
+  struct connection conn_info;
+  parse_server_opts(argc, argv, &conn_info);
+  assign_tcp_dual_stack_server_fd(&conn_info);
+
+  while (1 && stop != 1) {
     struct sockaddr_storage client_addr;
     socklen_t addr_size = sizeof(client_addr);
-    conn_inf.client_fd = accept(conn_inf.sockfd, (struct sockaddr *)&client_addr, &addr_size);
-    if (conn_inf.client_fd == INVALID_SOCKET)
+    socket_t client_fd = accept(conn_info.sockfd, (struct sockaddr *)&client_addr, &addr_size);
+    if (client_fd == INVALID_SOCKET)
       continue;
 
-    close_socket_checked(conn_inf.sockfd);
-    handle_client(conn_inf.client_fd);
+    send(client_fd, MESSAGE, strlen(MESSAGE), 0);
+    close_socket_checked(client_fd);
   }
 
-  close(conn_inf.client_fd);
+  puts("Closing socket...");
+  close_socket_checked(conn_info.sockfd);
   return 0;
 }

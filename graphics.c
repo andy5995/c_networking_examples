@@ -6,6 +6,7 @@
 #define LEN_FORMATTED_MSG 11
 
 struct peer_state {
+  socket_t sockfd;
   int x;
   int y;
   enum e_shape do_shape;
@@ -55,7 +56,7 @@ static void *recv_thread(void *arg) {
     //
     // So we won't rely on recv() to receive the exact packet that was sent by
     // send() on a single call, but instead use MSG_WAITALL...
-    ssize_t bytes_received = recv(conn_inf.sockfd, buffer, LEN_FORMATTED_MSG, MSG_WAITALL);
+    ssize_t bytes_received = recv(args->sockfd, buffer, LEN_FORMATTED_MSG, MSG_WAITALL);
     if (bytes_received <= 0) {
       if (bytes_received == -1)
         perror("recv");
@@ -78,11 +79,13 @@ static void *recv_thread(void *arg) {
   return NULL;
 }
 
-void run_sdl_loop(SDL_Renderer *renderer, enum e_shape shape, pthread_t *receiver) {
+void run_sdl_loop(SDL_Renderer *renderer, socket_t sockfd, enum e_shape shape,
+                  pthread_t *receiver) {
   int x = WINDOW_WIDTH / 2, y = WINDOW_HEIGHT / 2;
   const char *formatted_msg = "%04d %04d %d";
 
   struct peer_state peer_state = {
+      .sockfd = sockfd,
       .x = WINDOW_WIDTH / 2,
       .y = WINDOW_HEIGHT / 2,
       .do_shape = shape,
@@ -92,7 +95,7 @@ void run_sdl_loop(SDL_Renderer *renderer, enum e_shape shape, pthread_t *receive
 
   char message[64];
   int len = snprintf(message, sizeof(message), formatted_msg, x, y, shape);
-  if (send(conn_inf.sockfd, message, len, 0) == -1)
+  if (send(sockfd, message, len, 0) == -1)
     perror("send");
 
   int running = 1;
@@ -106,7 +109,7 @@ void run_sdl_loop(SDL_Renderer *renderer, enum e_shape shape, pthread_t *receive
         x = event.button.x;
         y = event.button.y;
         len = snprintf(message, sizeof(message), formatted_msg, x, y, shape);
-        if (send(conn_inf.sockfd, message, len, 0) == -1) {
+        if (send(sockfd, message, len, 0) == -1) {
           perror("send");
         }
       }

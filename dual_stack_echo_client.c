@@ -11,19 +11,20 @@
 #include "netex.h"
 
 int main(int argc, char *argv[]) {
-  parse_client_opts(argc, argv);
-  assign_tcp_dual_stack_client_fd();
+  struct connection conn_info;
+  parse_client_opts(argc, argv, &conn_info);
+  assign_tcp_dual_stack_client_fd(&conn_info);
 
   char buffer[1024];
   // Read response from server
-  ssize_t bytes_received = recv(conn_inf.sockfd, buffer, sizeof(buffer) - 1, 0);
+  ssize_t bytes_received = recv(conn_info.sockfd, buffer, sizeof(buffer) - 1, 0);
   if (bytes_received > 0) {
-    buffer[bytes_received] = '\0'; // Null-terminate received data
+    buffer[bytes_received] = '\0';
     printf("Server response: %s", buffer);
   } else {
     perror("recv");
   }
 
-  close(conn_inf.sockfd);
+  close_socket_checked(conn_info.sockfd);
   return 0;
 }

@@ -40,7 +40,7 @@ c_example = [
 
 _netex = static_library(
   'netex',
-  'netex.c',
+  ['netex.c', 'util.c'],
   install: false)
 
 foreach file : c_example

@@ -35,7 +35,8 @@
 #include "netex.h"
 
 int main(int argc, char *argv[]) {
-  parse_client_opts(argc, argv);
+  struct connection conn_info;
+  parse_client_opts(argc, argv, &conn_info);
 
   struct addrinfo hints;
   struct addrinfo *result, *rp;
@@ -50,7 +51,7 @@ int main(int argc, char *argv[]) {
   hints.ai_flags = 0;
   hints.ai_protocol = 0; /* Any protocol */
 
-  s = getaddrinfo(conn_inf.host, conn_inf.port, &hints, &result);
+  s = getaddrinfo(conn_info.host, conn_info.port, &hints, &result);
   if (s != 0) {
     fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(s));
     return -1;
@@ -62,14 +63,14 @@ int main(int argc, char *argv[]) {
      and) try the next address. */
 
   for (rp = result; rp != NULL; rp = rp->ai_next) {
-    conn_inf.sockfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
-    if (conn_inf.sockfd == INVALID_SOCKET)
+    conn_info.sockfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+    if (conn_info.sockfd == INVALID_SOCKET)
       continue;
 
-    if (connect(conn_inf.sockfd, rp->ai_addr, rp->ai_addrlen) != -1)
+    if (connect(conn_info.sockfd, rp->ai_addr, rp->ai_addrlen) != -1)
       break; /* Success */
 
-    close_socket_checked(conn_inf.sockfd);
+    close_socket_checked(conn_info.sockfd);
   }
 
   if (rp == NULL) { /* No address succeeded */
@@ -84,13 +85,13 @@ int main(int argc, char *argv[]) {
     get_user_input(buf, sizeof buf, "Enter a string:\n");
     socklen_t len = strlen(buf);
 
-    if (write(conn_inf.sockfd, buf, len) != len) {
+    if (write(conn_info.sockfd, buf, len) != len) {
       fputs("partial/failed write\n", stderr);
       return -1;
     }
 
     memset(buf, 0, sizeof buf);
-    nread = read(conn_inf.sockfd, buf, sizeof buf);
+    nread = read(conn_info.sockfd, buf, sizeof buf);
     if (nread == -1) {
       perror("read");
       return -1;
@@ -99,7 +100,7 @@ int main(int argc, char *argv[]) {
     printf("Received %ld bytes: %s\n\n", (long)nread, buf);
 
     if (strncasecmp(buf, "exit", 4) == 0) {
-      close(conn_inf.sockfd);
+      close(conn_info.sockfd);
       break;
     }
   }

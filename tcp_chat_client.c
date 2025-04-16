@@ -36,7 +36,7 @@ https://www.geeksforgeeks.org/tcp-server-client-implementation-in-c/
 
 #include "netex.h"
 
-static void func() {
+static void func(socket_t sockfd) {
   char buff[BUFSIZ];
   int n;
   for (;;) {
@@ -45,9 +45,9 @@ static void func() {
     n = 0;
     while ((buff[n++] = getchar()) != '\n')
       ;
-    write(conn_inf.sockfd, buff, sizeof buff);
+    write(sockfd, buff, sizeof buff);
     memset(buff, 0, sizeof buff);
-    read(conn_inf.sockfd, buff, sizeof buff);
+    read(sockfd, buff, sizeof buff);
     printf("From Server : %s", buff);
     if ((strncmp(buff, "exit", 4)) == 0) {
       printf("Client Exit...\n");
@@ -56,15 +56,17 @@ static void func() {
   }
 }
 
-
 int main(int argc, char *argv[]) {
-  parse_client_opts(argc, argv);
+  struct connection conn_info;
+  parse_client_opts(argc, argv, &conn_info);
 
-  assign_tcp_client_fd();
+  assign_tcp_client_fd(&conn_info);
 
   // function for chat
-  func();
+  func(conn_info.sockfd);
 
   // close the socket
-  return close(conn_inf.sockfd);
+  close_socket_checked(conn_info.sockfd);
+
+  return 0;
 }

@@ -36,7 +36,7 @@
 
 #include "netex.h"
 
-int func(const char *file) {
+int func(socket_t sockfd, const char *file) {
   FILE *fp = fopen(file, "rb");
   if (fp == NULL) {
     strerror(errno);
@@ -59,7 +59,7 @@ int func(const char *file) {
   char *file_basename = basename(file_orig);
   printf("Sending %s...\n", file);
 
-  send(conn_inf.sockfd, file_basename, strlen(file_basename) + 1, 0);
+  send(sockfd, file_basename, strlen(file_basename) + 1, 0);
   char buff[BUFSIZ];
   size_t n_bytes_total = 0;
   do {
@@ -69,7 +69,7 @@ int func(const char *file) {
       fputs("error: fread", stderr);
       exit(-1);
     }
-    send(conn_inf.sockfd, buff, num, 0);
+    send(sockfd, buff, num, 0);
     n_bytes_total += num;
     printf("bytes sent: %li\r", n_bytes_total);
 
@@ -79,7 +79,7 @@ int func(const char *file) {
   memset(buff, 0, sizeof buff);
   fputs("Server replied: ", stdout);
   int n_bytes_recvd;
-  while ((n_bytes_recvd = recv(conn_inf.sockfd, buff, sizeof(buff), 0)) != 0) {
+  while ((n_bytes_recvd = recv(sockfd, buff, sizeof(buff), 0)) != 0) {
     fputs(buff, stdout);
     *buff = '\0';
   }
@@ -106,7 +106,8 @@ static void show_usage(const char *prgname) {
 int main(int argc, char *argv[]) {
   int opt;
   char *file = NULL;
-  conn_inf.port = default_port;
+  struct connection conn_info;
+  conn_info.port = default_port;
 
   while ((opt = getopt(argc, argv, "f:a:p:h")) != -1) {
     switch (opt) {
@@ -114,10 +115,10 @@ int main(int argc, char *argv[]) {
       file = optarg;
       break;
     case 'p':
-      conn_inf.port = optarg;
+      conn_info.port = optarg;
       break;
     case 'a':
-      conn_inf.host = optarg;
+      conn_info.host = optarg;
       break;
     case 'h':
     default:
@@ -131,11 +132,11 @@ int main(int argc, char *argv[]) {
     exit(EXIT_FAILURE);
   }
 
-  assign_tcp_client_fd();
+  assign_tcp_client_fd(&conn_info);
 
-  int f_exists = func(file);
+  int f_exists = func(conn_info.sockfd, file);
 
-  close_socket_checked(conn_inf.sockfd);
+  close_socket_checked(conn_info.sockfd);
 
   return f_exists;
 }

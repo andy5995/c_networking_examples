@@ -37,21 +37,21 @@ https://www.geeksforgeeks.org/tcp-server-client-implementation-in-c/
 #include "netex.h"
 
 int main(int argc, char *argv[]) {
-  struct connection conn_info;
-  parse_server_opts(argc, argv, &conn_info);
+  struct socket_info_t socket_info;
+  parse_server_opts(argc, argv, &socket_info);
 
-  assign_tcp_server_fd(&conn_info);
+  assign_tcp_server_fd(&socket_info);
 
   struct sockaddr_in cli;
   socklen_t len = sizeof(cli);
 
   // Accept the data packet from client and verification
-  socket_t client_fd = accept(conn_info.sockfd, (struct sockaddr *)&cli, &len);
+  socket_t connfd = accept(socket_info.sockfd, (struct sockaddr *)&cli, &len);
   // sockfd only needed if more connections are desired
-  if (close(conn_info.sockfd))
+  if (close(socket_info.sockfd))
     perror("close() failed");
 
-  if (client_fd == INVALID_SOCKET) {
+  if (connfd == INVALID_SOCKET) {
     perror("accept");
     return -1;
   }
@@ -64,7 +64,7 @@ int main(int argc, char *argv[]) {
     memset(buff, 0, BUFSIZ);
 
     // read the message from client and copy it in buffer
-    read(client_fd, buff, sizeof(buff));
+    read(connfd, buff, sizeof(buff));
     // print buffer which contains the client contents
     printf("From client: %s\t To client : ", buff);
     memset(buff, 0, BUFSIZ);
@@ -74,7 +74,7 @@ int main(int argc, char *argv[]) {
       ;
 
     // and send that buffer to client
-    write(client_fd, buff, sizeof(buff));
+    write(connfd, buff, sizeof(buff));
 
     // if msg contains "Exit" then server exit and chat ended.
     if (strncmp("exit", buff, 4) == 0) {

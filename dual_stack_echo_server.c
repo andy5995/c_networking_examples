@@ -27,22 +27,22 @@ int main(int argc, char *argv[]) {
   sigaction(SIGINT, &sa, NULL);
 #endif
 
-  struct connection conn_info;
-  parse_server_opts(argc, argv, &conn_info);
-  assign_tcp_dual_stack_server_fd(&conn_info);
+  struct socket_info_t socket_info;
+  parse_server_opts(argc, argv, &socket_info);
+  assign_tcp_dual_stack_server_fd(&socket_info);
 
   while (1 && stop != 1) {
     struct sockaddr_storage client_addr;
     socklen_t addr_size = sizeof(client_addr);
-    socket_t client_fd = accept(conn_info.sockfd, (struct sockaddr *)&client_addr, &addr_size);
-    if (client_fd == INVALID_SOCKET)
+    socket_t connfd = accept(socket_info.sockfd, (struct sockaddr *)&client_addr, &addr_size);
+    if (connfd == INVALID_SOCKET)
       continue;
 
-    send(client_fd, MESSAGE, strlen(MESSAGE), 0);
-    close_socket_checked(client_fd);
+    send(connfd, MESSAGE, strlen(MESSAGE), 0);
+    close_socket_checked(connfd);
   }
 
   puts("Closing socket...");
-  close_socket_checked(conn_info.sockfd);
+  close_socket_checked(socket_info.sockfd);
   return 0;
 }

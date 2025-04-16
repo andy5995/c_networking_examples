@@ -16,7 +16,7 @@ typedef int socket_t;
 #define INVALID_SOCKET -1
 #endif
 
-struct connection {
+struct socket_info_t {
   char *host;
   const char *port;
   socket_t sockfd;
@@ -28,14 +28,14 @@ struct connection {
 #define MAX_BUF_ECHO_MSG 512
 extern const char *default_port;
 
-void assign_tcp_client_fd(struct connection *conn_info);
+void assign_tcp_client_fd(struct socket_info_t *socket_info);
 
-void assign_tcp_server_fd(struct connection *conn_info);
+void assign_tcp_server_fd(struct socket_info_t *socket_info);
 
-void assign_udp_server_fd(struct connection *conn_info);
+void assign_udp_server_fd(struct socket_info_t *socket_info);
 
-void assign_tcp_dual_stack_client_fd(struct connection *conn_info);
-void assign_tcp_dual_stack_server_fd(struct connection *conn_info);
+void assign_tcp_dual_stack_client_fd(struct socket_info_t *socket_info);
+void assign_tcp_dual_stack_server_fd(struct socket_info_t *socket_info);
 
 void set_sock_reuse(socket_t sockfd);
 

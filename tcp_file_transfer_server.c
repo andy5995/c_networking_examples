@@ -158,31 +158,31 @@ static socket_t accept_connection(socket_t sockfd) {
   socklen_t len = sizeof(cli);
 
   // Accept the data packet from client and verification
-  socket_t client_fd = accept(sockfd, (struct sockaddr *)&cli, &len);
+  socket_t connfd = accept(sockfd, (struct sockaddr *)&cli, &len);
   // sockfd only needed if more connections are desired
   close_socket_checked(sockfd);
 
-  if (client_fd == INVALID_SOCKET) {
+  if (connfd == INVALID_SOCKET) {
     perror("accept");
     return INVALID_SOCKET;
   }
 
   puts("Client connected\n");
-  return client_fd;
+  return connfd;
 }
 
 int main(int argc, char *argv[]) {
-  struct connection conn_info;
-  parse_server_opts(argc, argv, &conn_info);
-  assign_tcp_server_fd(&conn_info);
+  struct socket_info_t socket_info;
+  parse_server_opts(argc, argv, &socket_info);
+  assign_tcp_server_fd(&socket_info);
 
-  socket_t client_fd = accept_connection(conn_info.sockfd);
-  if (client_fd == INVALID_SOCKET)
+  socket_t connfd = accept_connection(socket_info.sockfd);
+  if (connfd == INVALID_SOCKET)
     return -1;
 
-  int f_exists = recv_file(client_fd);
+  int f_exists = recv_file(connfd);
 
-  close_socket_checked(conn_info.sockfd);
+  close_socket_checked(socket_info.sockfd);
 
   return f_exists;
 }

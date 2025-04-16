@@ -57,16 +57,16 @@ static void func(socket_t sockfd) {
 }
 
 int main(int argc, char *argv[]) {
-  struct connection conn_info;
-  parse_client_opts(argc, argv, &conn_info);
+  struct socket_info_t socket_info;
+  parse_client_opts(argc, argv, &socket_info);
 
-  assign_tcp_client_fd(&conn_info);
+  assign_tcp_client_fd(&socket_info);
 
   // function for chat
-  func(conn_info.sockfd);
+  func(socket_info.sockfd);
 
   // close the socket
-  close_socket_checked(conn_info.sockfd);
+  close_socket_checked(socket_info.sockfd);
 
   return 0;
 }

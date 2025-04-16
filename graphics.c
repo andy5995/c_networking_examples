@@ -9,10 +9,10 @@ struct peer_state {
   socket_t sockfd;
   int x;
   int y;
-  enum e_shape do_shape;
+  enum shape_t do_shape;
 };
 
-void init_sdl_window(struct sdl_context *sdl_context, const char *title) {
+void init_sdl_window(struct sdl_context_t *sdl_context, const char *title) {
   SDL_Init(SDL_INIT_VIDEO);
   const char *client = strstr(title, "Client");
   int win_pos_x = (client != NULL) ? WINDOW_WIDTH / 2 + 10 : SDL_WINDOWPOS_CENTERED;
@@ -28,7 +28,7 @@ void init_sdl_window(struct sdl_context *sdl_context, const char *title) {
   return;
 }
 
-static void draw_filled_area(SDL_Renderer *renderer, int x, int y, int r, enum e_shape shape) {
+static void draw_filled_area(SDL_Renderer *renderer, int x, int y, int r, enum shape_t shape) {
   SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
   for (int w = 0; w < r * 2; w++) {
     for (int h = 0; h < r * 2; h++) {
@@ -79,7 +79,7 @@ static void *recv_thread(void *arg) {
   return NULL;
 }
 
-void run_sdl_loop(SDL_Renderer *renderer, socket_t sockfd, enum e_shape shape,
+void run_sdl_loop(SDL_Renderer *renderer, const socket_t sockfd, const enum shape_t shape,
                   pthread_t *receiver) {
   int x = WINDOW_WIDTH / 2, y = WINDOW_HEIGHT / 2;
   const char *formatted_msg = "%04d %04d %d";
@@ -127,7 +127,7 @@ void run_sdl_loop(SDL_Renderer *renderer, socket_t sockfd, enum e_shape shape,
   }
 }
 
-void do_sdl_cleanup(struct sdl_context *sdl_context) {
+void do_sdl_cleanup(struct sdl_context_t *sdl_context) {
   SDL_DestroyRenderer(sdl_context->renderer);
   SDL_DestroyWindow(sdl_context->window);
   SDL_Quit();

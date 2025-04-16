@@ -42,7 +42,7 @@ static void show_ip(struct addrinfo *rp) {
   return;
 }
 
-void assign_tcp_client_fd(struct connection *conn_info) {
+void assign_tcp_client_fd(struct socket_info_t *socket_info) {
   struct addrinfo hints;
   struct addrinfo *result, *rp;
 
@@ -53,7 +53,7 @@ void assign_tcp_client_fd(struct connection *conn_info) {
   hints.ai_flags = 0;
   hints.ai_protocol = 0; /* Any protocol */
 
-  int s = getaddrinfo(conn_info->host, conn_info->port, &hints, &result);
+  int s = getaddrinfo(socket_info->host, socket_info->port, &hints, &result);
   if (s != 0) {
     fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(s));
     exit(EXIT_FAILURE);
@@ -61,66 +61,66 @@ void assign_tcp_client_fd(struct connection *conn_info) {
 
   for (rp = result; rp != NULL; rp = rp->ai_next) {
     show_ip(rp);
-    conn_info->sockfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
-    if (conn_info->sockfd == INVALID_SOCKET)
+    socket_info->sockfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+    if (socket_info->sockfd == INVALID_SOCKET)
       continue;
 
-    if (connect(conn_info->sockfd, rp->ai_addr, rp->ai_addrlen) == 0) {
-      printf("Connected to %s\n", conn_info->host);
+    if (connect(socket_info->sockfd, rp->ai_addr, rp->ai_addrlen) == 0) {
+      printf("Connected to %s\n", socket_info->host);
       break;
     }
     perror("connect");
-    close_socket_checked(conn_info->sockfd);
+    close_socket_checked(socket_info->sockfd);
 
     exit(EXIT_FAILURE);
   }
 
   freeaddrinfo(result); /* No longer needed */
 
-  if (conn_info->sockfd == INVALID_SOCKET) {
+  if (socket_info->sockfd == INVALID_SOCKET) {
     fputs("Unable to create socket\n", stderr);
     exit(EXIT_FAILURE);
   }
   return;
 }
 
-void assign_tcp_server_fd(struct connection *conn_info) {
+void assign_tcp_server_fd(struct socket_info_t *socket_info) {
   struct sockaddr_in servaddr;
 
-  conn_info->sockfd = socket(AF_INET, SOCK_STREAM, 0);
-  if (conn_info->sockfd == INVALID_SOCKET) {
+  socket_info->sockfd = socket(AF_INET, SOCK_STREAM, 0);
+  if (socket_info->sockfd == INVALID_SOCKET) {
     perror("socket");
     exit(EXIT_FAILURE);
   } else {
     puts("Socket successfully created");
-    set_sock_reuse(conn_info->sockfd);
+    set_sock_reuse(socket_info->sockfd);
   }
 
   memset(&servaddr, 0, sizeof servaddr);
 
   servaddr.sin_family = AF_UNSPEC;
   servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-  servaddr.sin_port = htons(atoi(conn_info->port));
+  servaddr.sin_port = htons(atoi(socket_info->port));
 
   // Binding newly created socket to given IP and verification
-  if ((bind(conn_info->sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr))) == -1) {
+  if ((bind(socket_info->sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr))) == -1) {
     perror("bind");
-    close(conn_info->sockfd);
+    close(socket_info->sockfd);
     exit(EXIT_FAILURE);
   }
 
   printf("Socket successfully binded..\n");
   // Now server is ready to listen and verification
-  if ((listen(conn_info->sockfd, 5)) != 0) {
+  if ((listen(socket_info->sockfd, 5)) != 0) {
     perror("listen");
-    close_socket_checked(conn_info->sockfd);
+    close_socket_checked(socket_info->sockfd);
     exit(EXIT_FAILURE);
   } else
-    printf("Server listening on port %s...\n", conn_info->port);
+    printf("Server listening on port %s...\n", socket_info->port);
   return;
 }
 
-void assign_udp_server_fd(struct connection *conn_info) {
+void assign_udp_server_fd(struct socket_info_t *socket_info) {
   struct addrinfo hints;
   struct addrinfo *result, *rp;
 
@@ -133,7 +133,7 @@ void assign_udp_server_fd(struct connection *conn_info) {
   hints.ai_addr = NULL;
   hints.ai_next = NULL;
 
-  int s = getaddrinfo(conn_info->host, conn_info->port, &hints, &result);
+  int s = getaddrinfo(socket_info->host, socket_info->port, &hints, &result);
   if (s != 0) {
     fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(s));
     exit(EXIT_FAILURE);
@@ -146,16 +146,16 @@ void assign_udp_server_fd(struct connection *conn_info) {
   for (rp = result; rp != NULL; rp = rp->ai_next) {
     show_ip(rp);
 
-    conn_info->sockfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
-    if (conn_info->sockfd == INVALID_SOCKET)
+    socket_info->sockfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+    if (socket_info->sockfd == INVALID_SOCKET)
       continue;
 
-    set_sock_ipv6_v6only_disable(conn_info->sockfd, rp->ai_family);
+    set_sock_ipv6_v6only_disable(socket_info->sockfd, rp->ai_family);
 
-    if (bind(conn_info->sockfd, rp->ai_addr, rp->ai_addrlen) == 0)
+    if (bind(socket_info->sockfd, rp->ai_addr, rp->ai_addrlen) == 0)
       break; /* Success */
 
-    close_socket_checked(conn_info->sockfd);
+    close_socket_checked(socket_info->sockfd);
   }
 
   if (rp == NULL) { /* No address succeeded */
@@ -167,7 +167,7 @@ void assign_udp_server_fd(struct connection *conn_info) {
   return;
 }
 
-void assign_tcp_dual_stack_client_fd(struct connection *conn_info) {
+void assign_tcp_dual_stack_client_fd(struct socket_info_t *socket_info) {
   struct addrinfo hints, *res, *p;
 
   // Set up hints for getaddrinfo()
@@ -176,21 +176,21 @@ void assign_tcp_dual_stack_client_fd(struct connection *conn_info) {
   hints.ai_socktype = SOCK_STREAM;
 
   // Get address info
-  if (getaddrinfo(conn_info->host, conn_info->port, &hints, &res) != 0) {
+  if (getaddrinfo(socket_info->host, socket_info->port, &hints, &res) != 0) {
     perror("getaddrinfo");
     exit(EXIT_FAILURE);
   }
 
   // Try to connect to one of the results
   for (p = res; p != NULL; p = p->ai_next) {
-    conn_info->sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
-    if (conn_info->sockfd == INVALID_SOCKET)
+    socket_info->sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
+    if (socket_info->sockfd == INVALID_SOCKET)
       continue;
 
-    if (connect(conn_info->sockfd, p->ai_addr, p->ai_addrlen) == 0)
+    if (connect(socket_info->sockfd, p->ai_addr, p->ai_addrlen) == 0)
       break; // Connected successfully
 
-    close_socket_checked(conn_info->sockfd);
+    close_socket_checked(socket_info->sockfd);
   }
 
   freeaddrinfo(res);
@@ -202,7 +202,7 @@ void assign_tcp_dual_stack_client_fd(struct connection *conn_info) {
   return;
 }
 
-void assign_tcp_dual_stack_server_fd(struct connection *conn_info) {
+void assign_tcp_dual_stack_server_fd(struct socket_info_t *socket_info) {
 
   struct addrinfo hints, *res, *p;
 
@@ -214,23 +214,23 @@ void assign_tcp_dual_stack_server_fd(struct connection *conn_info) {
   hints.ai_flags = AI_PASSIVE; // Auto-fill IP
 
   // Get address info
-  if (getaddrinfo(conn_info->host, conn_info->port, &hints, &res) != 0) {
+  if (getaddrinfo(socket_info->host, socket_info->port, &hints, &res) != 0) {
     perror("getaddrinfo");
     exit(EXIT_FAILURE);
   }
 
   // Create and bind socket
   for (p = res; p != NULL; p = p->ai_next) {
-    conn_info->sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
-    if (conn_info->sockfd == INVALID_SOCKET)
+    socket_info->sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
+    if (socket_info->sockfd == INVALID_SOCKET)
       continue;
 
-    set_sock_reuse(conn_info->sockfd);
-    set_sock_ipv6_v6only_disable(conn_info->sockfd, p->ai_family);
+    set_sock_reuse(socket_info->sockfd);
+    set_sock_ipv6_v6only_disable(socket_info->sockfd, p->ai_family);
 
-    if (bind(conn_info->sockfd, p->ai_addr, p->ai_addrlen) == 0)
+    if (bind(socket_info->sockfd, p->ai_addr, p->ai_addrlen) == 0)
       break; // Success
-    close_socket_checked(conn_info->sockfd);
+    close_socket_checked(socket_info->sockfd);
   }
 
   freeaddrinfo(res);
@@ -240,12 +240,12 @@ void assign_tcp_dual_stack_server_fd(struct connection *conn_info) {
   }
 
   // Start listening
-  if (listen(conn_info->sockfd, BACKLOG) == -1) {
+  if (listen(socket_info->sockfd, BACKLOG) == -1) {
     perror("listen");
     exit(EXIT_FAILURE);
   }
 
-  printf("Server listening on port %s...\n", conn_info->port);
+  printf("Server listening on port %s...\n", socket_info->port);
   return;
 }
 

@@ -74,13 +74,13 @@ void del_from_pfds(struct pollfd pfds[], int i, int *fd_count) {
 }
 
 int main(int argc, char *argv[]) {
-  struct connection conn_info;
-  parse_server_opts(argc, argv, &conn_info);
+  struct socket_info_t socket_info;
+  parse_server_opts(argc, argv, &socket_info);
 
   struct sockaddr_storage remoteaddr; // Client address
   socklen_t addrlen;
 
-  assign_tcp_server_fd(&conn_info);
+  assign_tcp_server_fd(&socket_info);
 
   // Start off with room for 5 connections
   // (We'll realloc as necessary)
@@ -93,7 +93,7 @@ int main(int argc, char *argv[]) {
   }
 
   // Add the listener to set
-  pfds[0].fd = conn_info.sockfd;
+  pfds[0].fd = socket_info.sockfd;
   pfds[0].events = POLLIN; // Report ready to read on incoming connection
 
   fd_count = 1; // For the listener
@@ -113,12 +113,12 @@ int main(int argc, char *argv[]) {
       // Check if someone's ready to read
       if (pfds[i].revents & POLLIN) { // We got one!!
 
-        if (pfds[i].fd == conn_info.sockfd) {
+        if (pfds[i].fd == socket_info.sockfd) {
           // If listener is ready to read, handle new connection
           addrlen = sizeof remoteaddr;
 
           // Newly accept()ed socket descriptor
-          int newfd = accept(conn_info.sockfd, (struct sockaddr *)&remoteaddr, &addrlen);
+          int newfd = accept(socket_info.sockfd, (struct sockaddr *)&remoteaddr, &addrlen);
 
           if (newfd == INVALID_SOCKET) {
             perror("accept");
@@ -160,7 +160,7 @@ int main(int argc, char *argv[]) {
 
               // Except the listener and ourselves
               // Except the listener and ourselves
-              if (dest_fd != conn_info.sockfd && dest_fd != sender_fd) {
+              if (dest_fd != socket_info.sockfd && dest_fd != sender_fd) {
                 if (send(dest_fd, buf, nbytes, 0) == -1) {
                   perror("send");
                 }

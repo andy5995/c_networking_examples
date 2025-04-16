@@ -35,8 +35,8 @@
 #include "netex.h"
 
 int main(int argc, char *argv[]) {
-  struct connection conn_info;
-  parse_client_opts(argc, argv, &conn_info);
+  struct socket_info_t socket_info;
+  parse_client_opts(argc, argv, &socket_info);
 
   struct addrinfo hints;
   struct addrinfo *result, *rp;
@@ -51,7 +51,7 @@ int main(int argc, char *argv[]) {
   hints.ai_flags = 0;
   hints.ai_protocol = 0; /* Any protocol */
 
-  s = getaddrinfo(conn_info.host, conn_info.port, &hints, &result);
+  s = getaddrinfo(socket_info.host, socket_info.port, &hints, &result);
   if (s != 0) {
     fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(s));
     return -1;
@@ -63,14 +63,14 @@ int main(int argc, char *argv[]) {
      and) try the next address. */
 
   for (rp = result; rp != NULL; rp = rp->ai_next) {
-    conn_info.sockfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
-    if (conn_info.sockfd == INVALID_SOCKET)
+    socket_info.sockfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+    if (socket_info.sockfd == INVALID_SOCKET)
       continue;
 
-    if (connect(conn_info.sockfd, rp->ai_addr, rp->ai_addrlen) != -1)
+    if (connect(socket_info.sockfd, rp->ai_addr, rp->ai_addrlen) != -1)
       break; /* Success */
 
-    close_socket_checked(conn_info.sockfd);
+    close_socket_checked(socket_info.sockfd);
   }
 
   if (rp == NULL) { /* No address succeeded */
@@ -85,13 +85,13 @@ int main(int argc, char *argv[]) {
     get_user_input(buf, sizeof buf, "Enter a string:\n");
     socklen_t len = strlen(buf);
 
-    if (write(conn_info.sockfd, buf, len) != len) {
+    if (write(socket_info.sockfd, buf, len) != len) {
       fputs("partial/failed write\n", stderr);
       return -1;
     }
 
     memset(buf, 0, sizeof buf);
-    nread = read(conn_info.sockfd, buf, sizeof buf);
+    nread = read(socket_info.sockfd, buf, sizeof buf);
     if (nread == -1) {
       perror("read");
       return -1;
@@ -100,7 +100,7 @@ int main(int argc, char *argv[]) {
     printf("Received %ld bytes: %s\n\n", (long)nread, buf);
 
     if (strncasecmp(buf, "exit", 4) == 0) {
-      close(conn_info.sockfd);
+      close(socket_info.sockfd);
       break;
     }
   }

@@ -50,14 +50,14 @@ static void show_client_usage(const char *prgname) {
   return;
 }
 
-void parse_server_opts(const int argc, char *argv[], struct connection *conn_info) {
-  conn_info->port = default_port;
+void parse_server_opts(const int argc, char *argv[], struct socket_info_t *socket_info) {
+  socket_info->port = default_port;
   int opt;
 
   while ((opt = getopt(argc, argv, "p:h")) != -1) {
     switch (opt) {
     case 'p':
-      conn_info->port = optarg;
+      socket_info->port = optarg;
       break;
     case 'h':
     default:
@@ -69,17 +69,17 @@ void parse_server_opts(const int argc, char *argv[], struct connection *conn_inf
   return;
 }
 
-void parse_client_opts(const int argc, char *argv[], struct connection *conn_info) {
-  conn_info->port = default_port;
+void parse_client_opts(const int argc, char *argv[], struct socket_info_t *socket_info) {
+  socket_info->port = default_port;
   int opt;
 
   while ((opt = getopt(argc, argv, "a:p:h")) != -1) {
     switch (opt) {
     case 'p':
-      conn_info->port = optarg;
+      socket_info->port = optarg;
       break;
     case 'a':
-      conn_info->host = optarg;
+      socket_info->host = optarg;
       break;
     case 'h':
     default:
@@ -88,7 +88,7 @@ void parse_client_opts(const int argc, char *argv[], struct connection *conn_inf
     }
   }
 
-  if (!conn_info->host) {
+  if (!socket_info->host) {
     fputs("-a <host> is required\n", stderr);
     exit(EXIT_FAILURE);
   }

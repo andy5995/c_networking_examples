@@ -106,8 +106,8 @@ static void show_usage(const char *prgname) {
 int main(int argc, char *argv[]) {
   int opt;
   char *file = NULL;
-  struct connection conn_info;
-  conn_info.port = default_port;
+  struct socket_info_t socket_info;
+  socket_info.port = default_port;
 
   while ((opt = getopt(argc, argv, "f:a:p:h")) != -1) {
     switch (opt) {
@@ -115,10 +115,10 @@ int main(int argc, char *argv[]) {
       file = optarg;
       break;
     case 'p':
-      conn_info.port = optarg;
+      socket_info.port = optarg;
       break;
     case 'a':
-      conn_info.host = optarg;
+      socket_info.host = optarg;
       break;
     case 'h':
     default:
@@ -132,11 +132,11 @@ int main(int argc, char *argv[]) {
     exit(EXIT_FAILURE);
   }
 
-  assign_tcp_client_fd(&conn_info);
+  assign_tcp_client_fd(&socket_info);
 
-  int f_exists = func(conn_info.sockfd, file);
+  int f_exists = func(socket_info.sockfd, file);
 
-  close_socket_checked(conn_info.sockfd);
+  close_socket_checked(socket_info.sockfd);
 
   return f_exists;
 }

@@ -5,11 +5,15 @@
 
 #define LEN_FORMATTED_MSG 11
 
-struct peer_state {
-  socket_t sockfd;
+struct peer_state_t {
   int x;
   int y;
   enum shape_t do_shape;
+};
+
+struct recv_args_t {
+  socket_t sockfd;
+  struct peer_state_t *peer_state;
 };
 
 void init_sdl_window(struct sdl_context_t *sdl_context, const char *title) {
@@ -45,7 +49,7 @@ static void draw_filled_area(SDL_Renderer *renderer, int x, int y, int r, enum s
 }
 
 static void *recv_thread(void *arg) {
-  struct peer_state *args = (struct peer_state *)arg;
+  struct recv_args_t *args = (struct recv_args_t *)arg;
   while (1) {
     char buffer[LEN_FORMATTED_MSG + 1] = {0};
 
@@ -71,9 +75,9 @@ static void *recv_thread(void *arg) {
     int new_x, new_y, new_shape;
 
     if (sscanf(buffer, "%d %d %d", &new_x, &new_y, &new_shape) == 3) {
-      args->x = new_x;
-      args->y = new_y;
-      args->do_shape = new_shape;
+      args->peer_state->x = new_x;
+      args->peer_state->y = new_y;
+      args->peer_state->do_shape = new_shape;
     }
   }
   return NULL;
@@ -84,14 +88,18 @@ void run_sdl_loop(SDL_Renderer *renderer, const socket_t sockfd, const enum shap
   int x = WINDOW_WIDTH / 2, y = WINDOW_HEIGHT / 2;
   const char *formatted_msg = "%04d %04d %d";
 
-  struct peer_state peer_state = {
-      .sockfd = sockfd,
+  struct peer_state_t peer_state = {
       .x = WINDOW_WIDTH / 2,
       .y = WINDOW_HEIGHT / 2,
       .do_shape = shape,
   };
 
-  pthread_create(receiver, NULL, recv_thread, &peer_state);
+  struct recv_args_t recv_args = {
+      .sockfd = sockfd,
+      .peer_state = &peer_state,
+  };
+
+  pthread_create(receiver, NULL, recv_thread, &recv_args);
 
   char message[64];
   int len = snprintf(message, sizeof(message), formatted_msg, x, y, shape);

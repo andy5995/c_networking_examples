@@ -6,9 +6,11 @@ TCP and UDP examples of networking in C
 
 Website: https://github.com/andy5995/c_networking_examples
 
-## TCP SDL MultiPeer server and client
+## TCP SDL Window Updater server and client
 
-Docs needed.
+When you connect to the server with the client, a window rendered with sdl
+will be created. Clicking in the client or server window will move a geometric
+shape to the coordinates where you clicked.
 
 ## Dual Stack Echo Server
 

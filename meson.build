@@ -55,8 +55,8 @@ endforeach
 sdl_dep = dependency('sdl2', required: false)
 if sdl_dep.found()
   sdl_example = [
-    'tcp_sdl_multipeer_server',
-    'tcp_sdl_multipeer_client',
+    'tcp_sdl_window_updater_server',
+    'tcp_sdl_window_updater_client',
     ]
 
   _graphics = static_library(

@@ -66,7 +66,7 @@ static void *recv_thread(void *arg) {
         perror("recv");
       break;
     } else if (bytes_received > LEN_FORMATTED_MSG) {
-      fprintf(stderr, "Packet length exceeded by %ld bytes\n", bytes_received - LEN_FORMATTED_MSG);
+      fprintf(stderr, "Packet length exceeded by %zd bytes\n", bytes_received - LEN_FORMATTED_MSG);
       break;
     }
 

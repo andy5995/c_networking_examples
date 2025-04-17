@@ -48,7 +48,7 @@ int func(socket_t sockfd, const char *file) {
     exit(errno);
   }
   long len = ftell(fp);
-  printf("file length: %li\n", len);
+  printf("file length: %zd\n", len);
   rewind(fp);
 
   // basename() may modify the contents of 'file', so create a copy
@@ -71,7 +71,7 @@ int func(socket_t sockfd, const char *file) {
     }
     send(sockfd, buff, num, 0);
     n_bytes_total += num;
-    printf("bytes sent: %li\r", n_bytes_total);
+    printf("bytes sent: %zu\r", n_bytes_total);
 
   } while (feof(fp) == 0);
 

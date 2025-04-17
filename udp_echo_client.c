@@ -97,7 +97,7 @@ int main(int argc, char *argv[]) {
       return -1;
     }
 
-    printf("Received %ld bytes: %s\n\n", (long)nread, buf);
+    printf("Received %zu bytes: %s\n\n", nread, buf);
 
     if (strncasecmp(buf, "exit", 4) == 0) {
       close(socket_info.sockfd);

@@ -105,7 +105,7 @@ static int recv_file(socket_t sockfd) {
           }
           n_bytes_total += n_bytes_recvd;
         }
-        printf("bytes received: %li\r", n_bytes_total);
+        printf("bytes received: %zd\r", n_bytes_total);
       }
     }
   }
@@ -135,13 +135,13 @@ static int recv_file(socket_t sockfd) {
     printf("Poll timed out!\n");
   } else {
     if (pfds[0].revents & POLLOUT) {
-      snprintf(buff, sizeof buff, "%s %li bytes",
+      snprintf(buff, sizeof buff, "%s %zd bytes",
                f_exists == 0 ? "Received " : "File already exists. Received", n_bytes_total);
       puts(buff);
       puts("Sending confirmation to client");
       ssize_t s_r = send(pfds[0].fd, buff, strlen(buff) + 1, 0);
       if (s_r >= 0)
-        printf("%li bytes sent\n", s_r);
+        printf("%zd bytes sent\n", s_r);
       else
         perror("send");
     }

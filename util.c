@@ -5,10 +5,6 @@
 
 #include "util.h"
 
-#ifdef _WIN32
-#include <windows.h>
-#endif
-
 volatile sig_atomic_t stop = 0;
 
 #ifdef _WIN32

@@ -26,18 +26,14 @@
 
 */
 
-#include "netex.h"
 #include <errno.h>
 #include <limits.h> // PATH_MAX
-#include <netdb.h>
-#include <netinet/in.h>
-#include <poll.h>
 #include <stdio.h>  // BUFSIZ
 #include <stdlib.h> // exit()
 #include <string.h>
-#include <sys/socket.h>
-#include <sys/types.h>
 #include <unistd.h>
+
+#include "netex.h"
 
 /*
  * recv_file
@@ -45,8 +41,8 @@
  * remaining data to a file
  *
  */
-static int recv_file(void) {
-  char buff[BUFSIZ];
+static int recv_file(socket_t sockfd) {
+  char buff[BUFSIZ] = {0};
   char filename[PATH_MAX];
   char *filename_ptr = filename;
   _Bool have_filename = 0;
@@ -54,10 +50,9 @@ static int recv_file(void) {
   FILE *fp = NULL;
   _Bool f_exists = 0;
   size_t n_bytes_total = 0;
-  bzero(buff, sizeof buff);
 
   struct pollfd pfds[1]; // More if you want to monitor more
-  pfds[0].fd = conn_inf.connfd;
+  pfds[0].fd = sockfd;
   pfds[0].events = POLLIN; // Alert me when I can read() data from this socket
                            // without blocking.
 
@@ -68,7 +63,7 @@ static int recv_file(void) {
       break;
     } else {
       if (pfds[0].revents & POLLIN) {
-        n_bytes_recvd = recv(conn_inf.connfd, buff, sizeof(buff), 0);
+        n_bytes_recvd = recv(pfds[0].fd, buff, sizeof(buff), 0);
         char *buf_file_dat_ptr = buff;
         if (!have_filename) {
           ssize_t i;
@@ -104,8 +99,7 @@ static int recv_file(void) {
             printf("Receiving '%s'\n", filename);
           }
 
-          if (fwrite(buf_file_dat_ptr, 1, n_bytes_recvd, fp) !=
-              (size_t)n_bytes_recvd) {
+          if (fwrite(buf_file_dat_ptr, 1, n_bytes_recvd, fp) != (size_t)n_bytes_recvd) {
             fputs("Failed to write buff", stderr);
             exit(-1);
           }
@@ -142,8 +136,7 @@ static int recv_file(void) {
   } else {
     if (pfds[0].revents & POLLOUT) {
       snprintf(buff, sizeof buff, "%s %li bytes",
-               f_exists == 0 ? "Received " : "File already exists. Received",
-               n_bytes_total);
+               f_exists == 0 ? "Received " : "File already exists. Received", n_bytes_total);
       puts(buff);
       puts("Sending confirmation to client");
       ssize_t s_r = send(pfds[0].fd, buff, strlen(buff) + 1, 0);
@@ -160,39 +153,36 @@ static int recv_file(void) {
   return f_exists;
 }
 
-static int accept_connection(void) {
-  get_tcp_server_sockfd();
-
+static socket_t accept_connection(socket_t sockfd) {
   struct sockaddr_in cli;
   socklen_t len = sizeof(cli);
 
   // Accept the data packet from client and verification
-  conn_inf.connfd = accept(conn_inf.sockfd, (struct sockaddr *)&cli, &len);
+  socket_t connfd = accept(sockfd, (struct sockaddr *)&cli, &len);
   // sockfd only needed if more connections are desired
-  if (close(conn_inf.sockfd))
-    perror("close() failed");
+  close_socket_checked(sockfd);
 
-  if (conn_inf.connfd < 0) {
+  if (connfd == INVALID_SOCKET) {
     perror("accept");
-    return conn_inf.connfd;
+    return INVALID_SOCKET;
   }
 
-  puts("Client connected");
-  putchar('\n');
-
-  return 0;
+  puts("Client connected\n");
+  return connfd;
 }
 
 int main(int argc, char *argv[]) {
-  parse_server_opts(argc, argv);
+  struct socket_info_t socket_info;
+  parse_server_opts(argc, argv, &socket_info);
+  assign_tcp_server_fd(&socket_info);
 
-  if (accept_connection() < 0)
+  socket_t connfd = accept_connection(socket_info.sockfd);
+  if (connfd == INVALID_SOCKET)
     return -1;
 
-  int f_exists = recv_file();
+  int f_exists = recv_file(connfd);
 
-  if (close(conn_inf.connfd))
-    perror("close() failed");
+  close_socket_checked(socket_info.sockfd);
 
   return f_exists;
 }

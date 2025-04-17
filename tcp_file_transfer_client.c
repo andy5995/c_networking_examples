@@ -29,16 +29,14 @@
 #include <errno.h>
 #include <libgen.h> // basename()
 #include <limits.h>
-#include <poll.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/socket.h>
 #include <unistd.h>
 
 #include "netex.h"
 
-int func(int sockfd, const char *file) {
+int func(socket_t sockfd, const char *file) {
   FILE *fp = fopen(file, "rb");
   if (fp == NULL) {
     strerror(errno);
@@ -55,8 +53,7 @@ int func(int sockfd, const char *file) {
 
   // basename() may modify the contents of 'file', so create a copy
   char file_orig[PATH_MAX];
-  if ((size_t)snprintf(file_orig, sizeof file_orig, "%s", file) >=
-      sizeof file_orig)
+  if ((size_t)snprintf(file_orig, sizeof file_orig, "%s", file) >= sizeof file_orig)
     fputs("filename truncated", stderr);
 
   char *file_basename = basename(file_orig);
@@ -79,7 +76,7 @@ int func(int sockfd, const char *file) {
   } while (feof(fp) == 0);
 
   putchar('\n');
-  bzero(buff, sizeof(buff));
+  memset(buff, 0, sizeof buff);
   fputs("Server replied: ", stdout);
   int n_bytes_recvd;
   while ((n_bytes_recvd = recv(sockfd, buff, sizeof(buff), 0)) != 0) {
@@ -109,6 +106,8 @@ static void show_usage(const char *prgname) {
 int main(int argc, char *argv[]) {
   int opt;
   char *file = NULL;
+  struct socket_info_t socket_info;
+  socket_info.port = default_port;
 
   while ((opt = getopt(argc, argv, "f:a:p:h")) != -1) {
     switch (opt) {
@@ -116,10 +115,10 @@ int main(int argc, char *argv[]) {
       file = optarg;
       break;
     case 'p':
-      conn_inf.port = optarg;
+      socket_info.port = optarg;
       break;
     case 'a':
-      conn_inf.host = optarg;
+      socket_info.host = optarg;
       break;
     case 'h':
     default:
@@ -133,15 +132,11 @@ int main(int argc, char *argv[]) {
     exit(EXIT_FAILURE);
   }
 
-  int res = get_tcp_client_sockfd();
-  if (res < 0)
-    return res;
+  assign_tcp_client_fd(&socket_info);
 
-  int f_exists = func(conn_inf.sockfd, file);
+  int f_exists = func(socket_info.sockfd, file);
 
-  puts("\nClosing socket");
-  if (close(conn_inf.sockfd) != 0)
-    perror("close() failed");
+  close_socket_checked(socket_info.sockfd);
 
   return f_exists;
 }

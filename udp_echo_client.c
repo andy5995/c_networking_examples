@@ -28,25 +28,20 @@
 
 */
 
-#include <netdb.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/socket.h>
-#include <sys/types.h>
 #include <unistd.h>
 
+#include "netex.h"
+
 int main(int argc, char *argv[]) {
+  struct socket_info_t socket_info;
+  parse_client_opts(argc, argv, &socket_info);
+
   struct addrinfo hints;
   struct addrinfo *result, *rp;
-  int sfd, s, j;
-  socklen_t len;
+  int s;
   ssize_t nread;
-  char buf[BUFSIZ];
-
-  if (argc < 3) {
-    fprintf(stderr, "Usage: %s host port msg...\n", argv[0]);
-    return -1;
-  }
 
   /* Obtain address(es) matching host/port */
 
@@ -56,7 +51,7 @@ int main(int argc, char *argv[]) {
   hints.ai_flags = 0;
   hints.ai_protocol = 0; /* Any protocol */
 
-  s = getaddrinfo(argv[1], argv[2], &hints, &result);
+  s = getaddrinfo(socket_info.host, socket_info.port, &hints, &result);
   if (s != 0) {
     fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(s));
     return -1;
@@ -68,14 +63,14 @@ int main(int argc, char *argv[]) {
      and) try the next address. */
 
   for (rp = result; rp != NULL; rp = rp->ai_next) {
-    sfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
-    if (sfd == -1)
+    socket_info.sockfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+    if (socket_info.sockfd == INVALID_SOCKET)
       continue;
 
-    if (connect(sfd, rp->ai_addr, rp->ai_addrlen) != -1)
+    if (connect(socket_info.sockfd, rp->ai_addr, rp->ai_addrlen) != -1)
       break; /* Success */
 
-    close(sfd);
+    close_socket_checked(socket_info.sockfd);
   }
 
   if (rp == NULL) { /* No address succeeded */
@@ -85,30 +80,29 @@ int main(int argc, char *argv[]) {
 
   freeaddrinfo(result); /* No longer needed */
 
-  /* Send remaining command-line arguments as separate
-     datagrams, and read responses from server */
+  for (;;) {
+    char buf[MAX_BUF_ECHO_MSG] = {0};
+    get_user_input(buf, sizeof buf, "Enter a string:\n");
+    socklen_t len = strlen(buf);
 
-  for (j = 3; j < argc; j++) {
-    len = strlen(argv[j]) + 1;
-    /* +1 for terminating null byte */
-
-    if (len + 1 > BUFSIZ) {
-      fprintf(stderr, "Ignoring long message in argument %d\n", j);
-      continue;
-    }
-
-    if (write(sfd, argv[j], len) != len) {
+    if (write(socket_info.sockfd, buf, len) != len) {
       fputs("partial/failed write\n", stderr);
       return -1;
     }
 
-    nread = read(sfd, buf, BUFSIZ);
+    memset(buf, 0, sizeof buf);
+    nread = read(socket_info.sockfd, buf, sizeof buf);
     if (nread == -1) {
       perror("read");
       return -1;
     }
 
-    printf("Received %ld bytes: %s\n", (long)nread, buf);
+    printf("Received %ld bytes: %s\n\n", (long)nread, buf);
+
+    if (strncasecmp(buf, "exit", 4) == 0) {
+      close(socket_info.sockfd);
+      break;
+    }
   }
 
   return 0;

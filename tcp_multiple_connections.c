@@ -30,13 +30,9 @@
 
 */
 
-#include <arpa/inet.h>
 #include <errno.h>
-#include <netinet/in.h>
-#include <poll.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/socket.h>
 #include <unistd.h>
 
 #include "netex.h"
@@ -51,8 +47,7 @@ void *get_in_addr(struct sockaddr *sa) {
 }
 
 // Add a new file descriptor to the set
-void add_to_pfds(struct pollfd *pfds[], int newfd, int *fd_count,
-                 int *fd_size) {
+void add_to_pfds(struct pollfd *pfds[], int newfd, int *fd_count, int *fd_size) {
   // If we don't have room, add more space in the pfds array
   if (*fd_count == *fd_size) {
     *fd_size *= 2; // Double it
@@ -79,15 +74,13 @@ void del_from_pfds(struct pollfd pfds[], int i, int *fd_count) {
 }
 
 int main(int argc, char *argv[]) {
-  parse_server_opts(argc, argv);
+  struct socket_info_t socket_info;
+  parse_server_opts(argc, argv, &socket_info);
 
   struct sockaddr_storage remoteaddr; // Client address
   socklen_t addrlen;
 
-  if (get_tcp_server_sockfd() < 0) {
-    fputs("Error\n", stderr);
-    return -1;
-  }
+  assign_tcp_server_fd(&socket_info);
 
   // Start off with room for 5 connections
   // (We'll realloc as necessary)
@@ -100,7 +93,7 @@ int main(int argc, char *argv[]) {
   }
 
   // Add the listener to set
-  pfds[0].fd = conn_inf.sockfd;
+  pfds[0].fd = socket_info.sockfd;
   pfds[0].events = POLLIN; // Report ready to read on incoming connection
 
   fd_count = 1; // For the listener
@@ -120,15 +113,14 @@ int main(int argc, char *argv[]) {
       // Check if someone's ready to read
       if (pfds[i].revents & POLLIN) { // We got one!!
 
-        if (pfds[i].fd == conn_inf.sockfd) {
+        if (pfds[i].fd == socket_info.sockfd) {
           // If listener is ready to read, handle new connection
           addrlen = sizeof remoteaddr;
 
           // Newly accept()ed socket descriptor
-          int newfd =
-              accept(conn_inf.sockfd, (struct sockaddr *)&remoteaddr, &addrlen);
+          int newfd = accept(socket_info.sockfd, (struct sockaddr *)&remoteaddr, &addrlen);
 
-          if (newfd == -1) {
+          if (newfd == INVALID_SOCKET) {
             perror("accept");
           } else {
             add_to_pfds(&pfds, newfd, &fd_count, &fd_size);
@@ -136,8 +128,7 @@ int main(int argc, char *argv[]) {
             char remoteIP[INET6_ADDRSTRLEN];
             printf("pollserver: new connection from %s on "
                    "socket %d\n",
-                   inet_ntop(remoteaddr.ss_family,
-                             get_in_addr((struct sockaddr *)&remoteaddr),
+                   inet_ntop(remoteaddr.ss_family, get_in_addr((struct sockaddr *)&remoteaddr),
                              remoteIP, INET6_ADDRSTRLEN),
                    newfd);
           }
@@ -169,7 +160,7 @@ int main(int argc, char *argv[]) {
 
               // Except the listener and ourselves
               // Except the listener and ourselves
-              if (dest_fd != conn_inf.sockfd && dest_fd != sender_fd) {
+              if (dest_fd != socket_info.sockfd && dest_fd != sender_fd) {
                 if (send(dest_fd, buf, nbytes, 0) == -1) {
                   perror("send");
                 }

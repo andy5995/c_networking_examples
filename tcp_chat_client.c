@@ -29,29 +29,25 @@ https://www.geeksforgeeks.org/tcp-server-client-implementation-in-c/
 
 */
 
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/socket.h>
 #include <unistd.h>
 
 #include "netex.h"
 
-void func(int sockfd) {
+static void func(socket_t sockfd) {
   char buff[BUFSIZ];
   int n;
   for (;;) {
-    bzero(buff, sizeof(buff));
+    memset(buff, 0, sizeof buff);
     fputs("Enter the string : ", stdout);
     n = 0;
     while ((buff[n++] = getchar()) != '\n')
       ;
-    write(sockfd, buff, sizeof(buff));
-    bzero(buff, sizeof(buff));
-    read(sockfd, buff, sizeof(buff));
+    write(sockfd, buff, sizeof buff);
+    memset(buff, 0, sizeof buff);
+    read(sockfd, buff, sizeof buff);
     printf("From Server : %s", buff);
     if ((strncmp(buff, "exit", 4)) == 0) {
       printf("Client Exit...\n");
@@ -60,39 +56,17 @@ void func(int sockfd) {
   }
 }
 
-static void show_usage(const char *prgname) {
-  printf("Usage: %s [OPTIONS]\n\n", prgname);
-  puts("\
-  -a <address>\n\
-  -p <port>\n");
-  return;
-}
-
 int main(int argc, char *argv[]) {
-  int opt;
+  struct socket_info_t socket_info;
+  parse_client_opts(argc, argv, &socket_info);
 
-  while ((opt = getopt(argc, argv, "a:p:h")) != -1) {
-    switch (opt) {
-    case 'p':
-      conn_inf.port = optarg;
-      break;
-    case 'a':
-      conn_inf.host = optarg;
-      break;
-    case 'h':
-    default:
-      show_usage(argv[0]);
-      return 0;
-    }
-  }
-
-  int res = get_tcp_client_sockfd();
-  if (res < 0)
-    return res;
+  assign_tcp_client_fd(&socket_info);
 
   // function for chat
-  func(conn_inf.sockfd);
+  func(socket_info.sockfd);
 
   // close the socket
-  return close(conn_inf.sockfd);
+  close_socket_checked(socket_info.sockfd);
+
+  return 0;
 }
